@@ -331,7 +331,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
         <div class="footerScores">
           <div class="scoreBox"><span>Upper</span><strong id="upperScore">0</strong></div>
           <div class="scoreBox"><span>Bonus</span><strong id="bonusScore">0</strong></div>
-          <div class="scoreBox"><span>High score</span><strong id="highScore">0</strong></div>
+          <div class="scoreBox"><span>Score</span><strong id="highScore">0</strong></div>
         </div>
       </div>
     </section>
@@ -2631,7 +2631,7 @@ function renderStats(){
   els.rolls.textContent = state.rollsLeft;
   els.upperScore.textContent = upper;
   els.bonusScore.textContent = bonus + (player.yahtzeeBonus ? ` + ${player.yahtzeeBonus}` : '');
-  els.highScore.textContent = Math.max(state.highScore, ...state.players.map(playerTotal));
+  els.highScore.textContent = total;
   els.bonusFill.style.width = `${Math.min(100, Math.round(upper/UPPER_BONUS_THRESHOLD*100))}%`;
   els.bonusText.textContent = `${upper} / ${UPPER_BONUS_THRESHOLD} → +${UPPER_BONUS_POINTS}${bonus ? ' unlocked!' : ''}`;
   const allHeld = state.hasRolled && state.held.every(Boolean);
