@@ -210,16 +210,12 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
     </div>
     <div class="topRight">
       <div class="allTimeCard" id="allTimeCard">
-        <div class="allTimeLabel">Online leaderboard</div>
-        <div class="leaderboardTabs">
-          <button class="leaderboardTab active" id="lbSingleBtn" type="button">1P Top 10</button>
-          <button class="leaderboardTab" id="lbMultiBtn" type="button">2P Top 10</button>
-        </div>
+        <div class="allTimeLabel">Online top 10</div>
         <div class="allTimeScore" id="allTimeScore">0</div>
         <div class="allTimeName" id="allTimeName">No champion yet</div>
         <div class="allTimeMeta" id="allTimeMeta">Loading online</div>
         <ol class="leaderboardList" id="leaderboardList"><li>Loading...</li></ol>
-        <div class="leaderboardStatus" id="leaderboardStatus">Scores save to Vercel Blob.</div>
+        <div class="leaderboardStatus" id="leaderboardStatus">All scores save to one Vercel Blob Top 10.</div>
       </div>
       <div class="actions">
         <button class="pill" id="soundBtn" title="Click to cycle mute. Long press to open hidden MP3 player.">🔊 Audio: All On</button>
@@ -1080,8 +1076,7 @@ const state = {
   players: [],
   highScore: initialRecord.score,
   allTimeRecord: initialRecord,
-  leaderboard: { single: [], multiplayer: [] },
-  leaderboardTab: 'single',
+  leaderboard: { scores: [] },
   leaderboardOnline: false,
   leaderboardSaving: false,
   unlockLevel: loadUnlockLevel(),
@@ -1911,18 +1906,25 @@ function leaderboardModeLabel(entry){
   return `${players}P • ${entry.targetMode === 'pick' ? 'pick' : 'forced'}`;
 }
 
-function renderLeaderboard(){
-  const key = state.leaderboardTab === 'multiplayer' ? 'multiplayer' : 'single';
-  const entries = (state.leaderboard && state.leaderboard[key]) || [];
-  const top = entries[0];
+function normalizeLeaderboardPayload(payload){
+  const board = payload?.leaderboard || payload || {};
+  if (Array.isArray(board.scores)) return { scores: board.scores };
+  const legacy = [
+    ...(Array.isArray(board.single) ? board.single : []),
+    ...(Array.isArray(board.multiplayer) ? board.multiplayer : [])
+  ];
+  legacy.sort((a,b)=>Number(b.score||0)-Number(a.score||0) || String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
+  return { scores: legacy.slice(0,10) };
+}
 
-  if (els.lbSingleBtn) els.lbSingleBtn.classList.toggle('active', key === 'single');
-  if (els.lbMultiBtn) els.lbMultiBtn.classList.toggle('active', key === 'multiplayer');
+function renderLeaderboard(){
+  const entries = (state.leaderboard && state.leaderboard.scores) || [];
+  const top = entries[0];
 
   if (top) {
     els.allTimeScore.textContent = top.score || 0;
     els.allTimeName.textContent = top.name || 'Unknown champion';
-    els.allTimeMeta.textContent = `Online ${key === 'single' ? 'single player' : 'multiplayer'} top 10`;
+    els.allTimeMeta.textContent = 'Shared online Top 10';
   } else if (!state.leaderboardOnline && state.allTimeRecord && state.allTimeRecord.score) {
     els.allTimeScore.textContent = state.allTimeRecord.score;
     els.allTimeName.textContent = state.allTimeRecord.name || 'Local champion';
@@ -1930,14 +1932,14 @@ function renderLeaderboard(){
   } else {
     els.allTimeScore.textContent = 0;
     els.allTimeName.textContent = 'No champion yet';
-    els.allTimeMeta.textContent = state.leaderboardOnline ? `No ${key === 'single' ? 'single player' : 'multiplayer'} scores yet` : 'Loading online leaderboard';
+    els.allTimeMeta.textContent = state.leaderboardOnline ? 'No online scores yet' : 'Loading online leaderboard';
   }
 
   if (els.leaderboardStatus) {
     els.leaderboardStatus.textContent = state.leaderboardSaving
       ? 'Saving score...'
       : state.leaderboardOnline
-        ? 'Synced with Vercel Blob.'
+        ? 'All 1P and 2P individual scores sync to this one Top 10.'
         : 'Online leaderboard unavailable. Local score still works until Blob is configured.';
   }
 
@@ -1964,10 +1966,7 @@ async function loadOnlineLeaderboard(){
     const response = await fetch('/api/leaderboard', { cache: 'no-store' });
     if (!response.ok) throw new Error('Leaderboard request failed');
     const data = await response.json();
-    state.leaderboard = {
-      single: Array.isArray(data?.leaderboard?.single) ? data.leaderboard.single : [],
-      multiplayer: Array.isArray(data?.leaderboard?.multiplayer) ? data.leaderboard.multiplayer : []
-    };
+    state.leaderboard = normalizeLeaderboardPayload(data);
     state.leaderboardOnline = true;
   } catch (error) {
     state.leaderboardOnline = false;
@@ -1991,14 +1990,11 @@ async function submitLeaderboardScores(entries){
     if (!response.ok) throw new Error('Save failed');
     const data = await response.json();
     if (data?.leaderboard) {
-      state.leaderboard = {
-        single: Array.isArray(data.leaderboard.single) ? data.leaderboard.single : [],
-        multiplayer: Array.isArray(data.leaderboard.multiplayer) ? data.leaderboard.multiplayer : []
-      };
+      state.leaderboard = normalizeLeaderboardPayload(data);
       state.leaderboardOnline = true;
     }
     if (data?.saved) {
-      toast('🏆 Online top 10 updated!', 'Your score was saved to Vercel Blob.');
+      toast('🏆 Online Top 10 updated!', 'Your score was saved to the shared Vercel Blob leaderboard.');
     }
   } catch (error) {
     state.leaderboardOnline = false;
@@ -2582,7 +2578,7 @@ function finishGame(){
   els.endTitle.textContent = state.playerCount === 1 ? 'Game over!' : `${best.name} wins!`;
   els.finalScore.textContent = bestScore;
   const rankingText = ranking.map((p,i)=>`${i+1}. ${p.name}: ${playerTotal(p)}`).join(' • ');
-  els.finalCopy.textContent = `${rankingText} • Online leaderboard saves the top 10 single-player and multiplayer scores.`;
+  els.finalCopy.textContent = `${rankingText} • Online leaderboard saves all 1P and 2P individual scores to the same Top 10.`;
   els.endModal.classList.add('show');
   sfx.big(); burst(window.innerWidth/2,220,110); screenPop();
   render();
@@ -2638,8 +2634,6 @@ els.playAgainBtn.onclick = () => { ensureAudio(); resetGame(); sfx.buy(); };
 els.closeEndBtn.onclick = () => els.endModal.classList.remove('show');
 els.endModal.onclick = e => { if (e.target === els.endModal) els.endModal.classList.remove('show'); };
 els.showWinnerBtn.onclick = showStandings;
-if (els.lbSingleBtn) els.lbSingleBtn.onclick = () => { state.leaderboardTab = 'single'; renderLeaderboard(); };
-if (els.lbMultiBtn) els.lbMultiBtn.onclick = () => { state.leaderboardTab = 'multiplayer'; renderLeaderboard(); };
 els.playerCount.onchange = () => {
   const twoPlayer = Number(els.playerCount.value) === 2;
   els.name2.parentElement.style.display = twoPlayer ? 'flex' : 'none';

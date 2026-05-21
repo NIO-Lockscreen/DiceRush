@@ -2,7 +2,7 @@ import { get, put } from '@vercel/blob';
 
 const LEADERBOARD_PATH = 'dice-rush/leaderboard.json';
 const MAX_ENTRIES = 10;
-const EMPTY_BOARD = { single: [], multiplayer: [], updatedAt: null };
+const EMPTY_BOARD = { scores: [], updatedAt: null };
 
 function sendJson(res, status, payload) {
   res.statusCode = status;
@@ -46,8 +46,7 @@ function cleanName(value, fallback = 'Player') {
 }
 
 function cleanMode(value, players) {
-  if (value === 'multiplayer' || Number(players) >= 2) return 'multiplayer';
-  return 'single';
+  return value === 'multiplayer' || Number(players) >= 2 ? 'multiplayer' : 'single';
 }
 
 function cleanTargetMode(value) {
@@ -78,24 +77,26 @@ function cleanEntry(input) {
 }
 
 function sortAndTrim(board) {
-  for (const key of ['single', 'multiplayer']) {
-    board[key] = (Array.isArray(board[key]) ? board[key] : [])
-      .filter(Boolean)
-      .sort((a, b) => b.score - a.score || String(a.createdAt).localeCompare(String(b.createdAt)))
-      .slice(0, MAX_ENTRIES);
-  }
+  board.scores = (Array.isArray(board.scores) ? board.scores : [])
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || String(a.createdAt).localeCompare(String(b.createdAt)))
+    .slice(0, MAX_ENTRIES);
   return board;
 }
 
 function normalizeBoard(board) {
+  // Migration support: older deploys stored separate single/multiplayer arrays.
+  const legacyScores = [
+    ...(Array.isArray(board?.single) ? board.single : []),
+    ...(Array.isArray(board?.multiplayer) ? board.multiplayer : [])
+  ];
+
   const next = {
-    single: Array.isArray(board?.single) ? board.single : [],
-    multiplayer: Array.isArray(board?.multiplayer) ? board.multiplayer : [],
+    scores: Array.isArray(board?.scores) ? board.scores : legacyScores,
     updatedAt: board?.updatedAt || null
   };
 
-  next.single = next.single.map(cleanEntry).filter(Boolean);
-  next.multiplayer = next.multiplayer.map(cleanEntry).filter(Boolean);
+  next.scores = next.scores.map(cleanEntry).filter(Boolean);
   return sortAndTrim(next);
 }
 
@@ -109,17 +110,16 @@ function mergeEntries(board, entries) {
   const accepted = [];
 
   for (const entry of entries) {
-    const key = entry.mode === 'multiplayer' ? 'multiplayer' : 'single';
-    const before = JSON.stringify(board[key]);
+    const before = JSON.stringify(board.scores);
 
-    if (entry.score > lowestScore(board[key])) {
-      board[key].push(entry);
+    if (entry.score > lowestScore(board.scores)) {
+      board.scores.push(entry);
       sortAndTrim(board);
     }
 
-    const didSave = before !== JSON.stringify(board[key]);
+    const didSave = before !== JSON.stringify(board.scores);
     saved = saved || didSave;
-    accepted.push({ id: entry.id, name: entry.name, score: entry.score, mode: key, saved: didSave });
+    accepted.push({ id: entry.id, name: entry.name, score: entry.score, mode: entry.mode, saved: didSave });
   }
 
   if (saved) board.updatedAt = new Date().toISOString();

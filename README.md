@@ -5,7 +5,7 @@ This project is ready to deploy on Vercel.
 ## What is included
 
 - `index.html` — patched Dice Rush game.
-- `api/leaderboard.js` — Vercel Blob-backed top-10 leaderboard.
+- `api/leaderboard.js` — Vercel Blob-backed shared top-10 leaderboard.
 - `api/mp3-list.js` — lists `.mp3` files from the `/mp3` folder.
 - `mp3/` — put your music files here.
 
@@ -62,7 +62,8 @@ npm run dev
 
 ## Leaderboard behavior
 
-- Single player games save to the single-player top 10.
-- Two-player games save both player scores to the multiplayer top 10.
-- Scores only enter if they beat the current top 10 cutoff.
+- There is one shared online Top 10.
+- Single-player scores save to this shared Top 10.
+- In two-player games, each player's individual score saves to the same shared Top 10.
+- Scores only enter if they beat the current Top 10 cutoff.
 - It is designed for a small personal project, not heavy simultaneous traffic.
