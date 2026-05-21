@@ -67,3 +67,32 @@ npm run dev
 - In two-player games, each player's individual score saves to the same shared Top 10.
 - Scores only enter if they beat the current Top 10 cutoff.
 - It is designed for a small personal project, not heavy simultaneous traffic.
+
+## Balance note — Snake Eyes CEO update
+
+Snake Eyes CEO is no longer a one-row dice.
+
+- In `Ones`, every 1 scores as 12 before heat.
+- Outside `Ones`, every 1 adds +12 score and +$3.
+- Upgraded Snake gives an even larger score/cash payout.
+
+Dice implementation audit: all 66 shop dice have an implemented live effect or a deliberate system effect, such as Coupon pricing, Brain Freeze held-dice scoring, WOG/WOW special handling, or Cat's random multiplier.
+
+
+## Latest gameplay balance update
+
+- Removed several boring beginner dice from the active loot pool.
+- Added Reroll Baron, Salvage Roller, Gambler’s Floor, Game Breaker, and Point Stealer.
+- Game Breaker only appears in forced mode. Point Stealer only appears in two-player games.
+- All new dice have upgraded versions and dice-book explanations.
+
+
+## 67 Dice update
+
+Added **67 Dice**. It banks exactly 67 points regardless of row, roll, or heat. When upgraded, any real roll containing a 6 has a 50% chance to mutate another die into a visible 7. Banking with a 7 adds +67 extra, for 134 total. Straights also understand 7-based runs like 3-4-5-6-7.
+
+## Live leaderboard refresh fix
+
+- After saving a new score, the visible Top 10 updates immediately instead of requiring a page refresh.
+- The client now does an optimistic local insert, posts to `/api/leaderboard`, and then reloads the Blob leaderboard with a cache-busting request.
+- Clicking the Top 10 card opens a full Top 10 modal showing all 10 ranks across single-player and multiplayer individual scores.
