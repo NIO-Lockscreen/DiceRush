@@ -1,4 +1,4 @@
-import { get, put } from '@vercel/blob';
+import { list, put } from '@vercel/blob';
 
 const LEADERBOARD_PATH = 'dice-rush/leaderboard.json';
 const LEGACY_LEADERBOARD_PATHS = ['leaderboards/dice-rush-top10.json', 'leaderboards/dice-rush-shared-top10.json'];
@@ -39,24 +39,6 @@ async function readBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
-async function streamToText(stream) {
-  if (!stream) return '';
-  if (typeof stream.getReader === 'function') {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let out = '';
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      out += decoder.decode(value, { stream: true });
-    }
-    return out + decoder.decode();
-  }
-
-  const chunks = [];
-  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
-  return Buffer.concat(chunks).toString('utf8');
-}
 
 function cleanName(value, fallback = 'Player') {
   const name = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 24);
@@ -184,11 +166,18 @@ function mergeEntries(board, entries) {
 }
 
 async function readBoardFromPath(path) {
-  const result = await get(path, { access: 'public' });
-  if (!result || result.statusCode !== 200) return null;
-  const text = await streamToText(result.stream);
+  // @vercel/blob has no get(); find the blob URL via list(), then fetch its content.
+  const { blobs } = await list({ prefix: path, limit: 1 });
+  const blobMeta = blobs.find((b) => b.pathname === path);
+  if (!blobMeta) return null;
+
+  const response = await fetch(blobMeta.url, { cache: 'no-store' });
+  if (!response.ok) return null;
+
+  const etag = response.headers.get('etag') || null;
+  const text = await response.text();
   const parsed = text ? JSON.parse(text) : EMPTY_BOARD;
-  return { board: normalizeBoard(parsed), etag: result.blob?.etag || null, path };
+  return { board: normalizeBoard(parsed), etag, path };
 }
 
 async function loadBoard() {
