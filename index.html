@@ -183,6 +183,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 .leaderboardScore{font-variant-numeric:tabular-nums;font-weight:1000;color:#ffd66b}
 .leaderboardSub{grid-column:2 / 4;color:rgba(255,255,255,.55);font-size:10px;margin-top:-3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .leaderboardStatus{margin-top:8px;font-size:11px;color:rgba(255,255,255,.58)}
+.leaderboardOpenBtn{margin-top:9px;width:100%;border:1px solid rgba(255,212,105,.28);background:rgba(255,212,105,.10);color:var(--gold);border-radius:999px;padding:8px 10px;font-weight:1000;cursor:pointer}.leaderboardOpenBtn:hover{background:rgba(255,212,105,.18);border-color:rgba(255,212,105,.5)}
 .allTimeCard{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}.allTimeCard:hover{transform:translateY(-2px);border-color:rgba(255,212,105,.58);box-shadow:0 22px 60px rgba(255,212,105,.16),inset 0 1px 0 rgba(255,255,255,.18)}.leaderboardModalList{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:8px;max-height:min(62vh,620px);overflow:auto}.leaderboardModalList li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11)}.leaderboardModalList .leaderboardSub{grid-column:2 / 4}.leaderboardEmpty{opacity:.55}
 
 </style>
@@ -222,6 +223,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
         <div class="allTimeName" id="allTimeName">No champion yet</div>
         <div class="allTimeMeta" id="allTimeMeta">Loading online</div>
         <ol class="leaderboardList" id="leaderboardList"><li>Loading...</li></ol>
+        <button class="leaderboardOpenBtn" id="viewLeaderboardBtn" type="button">View full Top 10</button>
         <div class="leaderboardStatus" id="leaderboardStatus">Click to view the full Top 10. All scores save to one Vercel Blob Top 10.</div>
       </div>
       <div class="actions">
@@ -547,9 +549,15 @@ function displayUpgradedEffect(item){
     .replace(/\s+/g, ' ')
     .trim();
 }
+function stripUpgradeCopy(text){
+  return String(text || '')
+    .replace(/\s*(?:Upgrade|Upgraded)\s*:[\s\S]*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 function displayItemDesc(player,item){
   if (!item) return '';
-  return isUpgraded(player,item.id) ? displayUpgradedEffect(item) : item.desc;
+  return isUpgraded(player,item.id) ? displayUpgradedEffect(item) : stripUpgradeCopy(item.desc);
 }
 function displayUpgradeHint(item){
   if (!item) return '';
@@ -1993,12 +2001,12 @@ function renderDiceGuide(){
   els.diceGuideList.innerHTML = shopItems.map(item => {
     const doc = diceDocs[item.id] || { detail: item.desc, example: 'Example: When the condition is true, this dice changes the score or money when you bank the target.' };
     const ownedUpgraded = player && player.inv.includes(item.id) && isUpgraded(player,item.id);
-    const detail = ownedUpgraded ? displayItemDesc(player,item) : doc.detail;
+    const detail = ownedUpgraded ? displayItemDesc(player,item) : stripUpgradeCopy(doc.detail || item.desc);
     const example = ownedUpgraded
       ? (item.id === 'wog'
         ? 'Example: Roll 1-1-4-5-6 and WOW gives +111 +44 score and +$66. Roll any Yahtzee and WOW gives +666. No penalty ever.'
         : 'Example: This entry is upgraded, so the book shows the current active effect instead of the old base dice text.')
-      : doc.example;
+      : stripUpgradeCopy(doc.example || 'When the condition is true, this dice changes the score or money when you bank the target.');
     return `<article class="guideCard${ownedUpgraded ? ' upgraded' : ''}"><div class="guideTop"><div class="guideEmoji">${item.emoji}</div><div><div class="guideName">${escapeHTML(diceGuideName(item, player))} <span class="rarity rarity-${item.rarity}">${escapeHTML(item.rarity)}</span></div><div class="guideMetaLine">$${item.price} • Power tier: ${escapeHTML(item.rarity)}${ownedUpgraded ? ' • upgraded' : ''}</div></div></div><div class="guideDesc">${escapeHTML(detail)}</div><div class="guideExample"><b>Example:</b> ${escapeHTML(example)}</div></article>`;
   }).join('');
 }
@@ -2045,11 +2053,81 @@ function prepareLeaderboardEntries(entries){
   }).filter(Boolean);
 }
 
+function leaderboardEntrySignature(entry){
+  const playerNames = Array.isArray(entry?.playerNames) ? entry.playerNames.map(name => cleanLeaderboardName(name).toLowerCase()).join(' vs ') : '';
+  return [
+    cleanLeaderboardName(entry?.name).toLowerCase(),
+    Math.floor(Number(entry?.score || 0)),
+    entry?.mode === 'multiplayer' ? 'multi' : 'single',
+    Number(entry?.players || 1),
+    Number(entry?.playerIndex || 1),
+    entry?.targetMode === 'pick' ? 'pick' : 'forced',
+    playerNames
+  ].join('|');
+}
+
 function sortedLeaderboardScores(scores){
-  return (scores || [])
-    .filter(Boolean)
+  const bySignature = new Map();
+  prepareLeaderboardEntries(scores || []).forEach(entry => {
+    const sig = leaderboardEntrySignature(entry);
+    const existing = bySignature.get(sig);
+    if (!existing || String(entry.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
+      bySignature.set(sig, entry);
+    }
+  });
+  return [...bySignature.values()]
     .sort((a,b)=>Number(b.score||0)-Number(a.score||0) || String(a.createdAt||'').localeCompare(String(b.createdAt||'')))
     .slice(0,10);
+}
+
+const LOCAL_LEADERBOARD_KEY = 'diceRushLocalLeaderboardTop10V2';
+function localAllTimeAsLeaderboardEntry(){
+  const record = state?.allTimeRecord || initialRecord;
+  if (!record || !Number(record.score)) return null;
+  return {
+    id: `local-alltime-${Math.floor(Number(record.score || 0))}-${String(record.name || 'player').toLowerCase().replace(/[^a-z0-9]+/g,'-')}`,
+    name: record.name || 'Local champion',
+    score: Number(record.score || 0),
+    mode: Number(record.players || 1) >= 2 ? 'multiplayer' : 'single',
+    players: Number(record.players || 1),
+    playerIndex: 1,
+    playerNames: [],
+    targetMode: record.mode === 'pick' ? 'pick' : 'forced',
+    createdAt: record.date || new Date(0).toISOString()
+  };
+}
+function loadLocalLeaderboardEntries(){
+  let entries = [];
+  try {
+    const raw = localStorage.getItem(LOCAL_LEADERBOARD_KEY);
+    if (raw) entries = JSON.parse(raw);
+  } catch (error) { entries = []; }
+  const allTime = localAllTimeAsLeaderboardEntry();
+  if (allTime) entries.push(allTime);
+  return sortedLeaderboardScores(entries);
+}
+function saveLocalLeaderboardEntries(entries){
+  const top = sortedLeaderboardScores(entries);
+  try { localStorage.setItem(LOCAL_LEADERBOARD_KEY, JSON.stringify(top)); } catch (error) {}
+  return top;
+}
+function rememberLocalLeaderboardEntries(entries){
+  const merged = sortedLeaderboardScores([
+    ...loadLocalLeaderboardEntries(),
+    ...prepareLeaderboardEntries(entries || [])
+  ]);
+  saveLocalLeaderboardEntries(merged);
+  return merged;
+}
+function mergeOnlineAndLocalLeaderboard(onlineScores = [], extraScores = []){
+  const merged = sortedLeaderboardScores([
+    ...prepareLeaderboardEntries(onlineScores || []),
+    ...loadLocalLeaderboardEntries(),
+    ...prepareLeaderboardEntries(extraScores || [])
+  ]);
+  state.leaderboard = { scores: merged };
+  saveLocalLeaderboardEntries(merged);
+  return merged;
 }
 
 function wouldMakeVisibleTop10(entry){
@@ -2093,7 +2171,8 @@ function openLeaderboardModal(){
 }
 
 function renderLeaderboard(){
-  const entries = (state.leaderboard && state.leaderboard.scores) || [];
+  const entries = sortedLeaderboardScores((state.leaderboard && state.leaderboard.scores) || []);
+  state.leaderboard = { scores: entries };
   const top = entries[0];
 
   if (top) {
@@ -2118,9 +2197,10 @@ function renderLeaderboard(){
         : 'Click to view the full Top 10. Online sync is unavailable until Blob is configured.';
   }
 
-  if (!els.leaderboardList) return;
+  if (!els.leaderboardList) { renderLeaderboardModalList(); return; }
   if (!entries.length) {
     els.leaderboardList.innerHTML = `<li><span class="leaderboardRank">–</span><span class="leaderboardWho">No scores yet</span><span class="leaderboardScore">0</span></li>`;
+    renderLeaderboardModalList();
     return;
   }
 
@@ -2132,17 +2212,46 @@ function renderAllTime(){
   renderLeaderboard();
 }
 
-async function loadOnlineLeaderboard(preserveEntries = []){
+let localLeaderboardSyncInFlight = false;
+async function pushLocalLeaderboardToOnline(entries){
+  const cleanEntries = prepareLeaderboardEntries(entries || []);
+  if (!cleanEntries.length || localLeaderboardSyncInFlight) return;
+  localLeaderboardSyncInFlight = true;
+  try {
+    const response = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries: cleanEntries, source: 'local-resync' })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.leaderboard) {
+        mergeOnlineAndLocalLeaderboard(normalizeLeaderboardPayload(data).scores);
+        state.leaderboardOnline = true;
+      }
+    }
+  } catch (error) {
+    // Silent: local scores stay saved and will try again next load/save.
+  } finally {
+    localLeaderboardSyncInFlight = false;
+    renderLeaderboard();
+  }
+}
+
+async function loadOnlineLeaderboard(preserveEntries = [], syncLocal = true){
+  const localEntries = rememberLocalLeaderboardEntries(preserveEntries || []);
+  mergeOnlineAndLocalLeaderboard([], localEntries);
   try {
     const response = await fetch(`/api/leaderboard?t=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) throw new Error('Leaderboard request failed');
     const data = await response.json();
-    state.leaderboard = normalizeLeaderboardPayload(data);
+    const online = normalizeLeaderboardPayload(data);
+    mergeOnlineAndLocalLeaderboard(online.scores, preserveEntries);
     state.leaderboardOnline = true;
-    if (preserveEntries && preserveEntries.length) mergeLeaderboardEntriesLive(preserveEntries);
+    if (syncLocal) pushLocalLeaderboardToOnline(loadLocalLeaderboardEntries());
   } catch (error) {
     state.leaderboardOnline = false;
-    if (preserveEntries && preserveEntries.length) mergeLeaderboardEntriesLive(preserveEntries);
+    mergeOnlineAndLocalLeaderboard([], preserveEntries);
   }
   renderLeaderboard();
 }
@@ -2151,8 +2260,8 @@ async function submitLeaderboardScores(entries){
   const cleanEntries = prepareLeaderboardEntries(entries);
   if (!cleanEntries.length) return;
 
-  const optimisticEntries = cleanEntries.filter(wouldMakeVisibleTop10);
-  if (optimisticEntries.length) mergeLeaderboardEntriesLive(optimisticEntries);
+  const localTop = rememberLocalLeaderboardEntries(cleanEntries);
+  mergeOnlineAndLocalLeaderboard((state.leaderboard && state.leaderboard.scores) || [], localTop);
 
   state.leaderboardSaving = true;
   renderLeaderboard();
@@ -2169,18 +2278,19 @@ async function submitLeaderboardScores(entries){
     const savedIds = new Set((data?.accepted || []).filter(entry => entry.saved).map(entry => String(entry.id)));
     savedEntries = cleanEntries.filter(entry => savedIds.has(String(entry.id)));
     if (data?.leaderboard) {
-      state.leaderboard = normalizeLeaderboardPayload(data);
+      mergeOnlineAndLocalLeaderboard(normalizeLeaderboardPayload(data).scores, cleanEntries);
       state.leaderboardOnline = true;
-      if (savedEntries.length) mergeLeaderboardEntriesLive(savedEntries);
     }
     if (data?.saved) {
       toast('🏆 Online Top 10 updated!', 'Your score was saved and the live list was refreshed.');
+    } else {
+      toast('🏆 Top 10 already synced', 'This score is saved locally and already exists online or did not beat the cutoff.');
     }
-    await loadOnlineLeaderboard(savedEntries);
+    await loadOnlineLeaderboard(savedEntries, false);
   } catch (error) {
     state.leaderboardOnline = false;
-    if (optimisticEntries.length) mergeLeaderboardEntriesLive(optimisticEntries);
-    toast('⚠️ Leaderboard not saved', 'Local score still works. Check that your Vercel Blob store is connected.');
+    mergeOnlineAndLocalLeaderboard([], cleanEntries);
+    toast('⚠️ Leaderboard not saved online', 'The score stayed in local Top 10 and will resync to Blob on refresh/redeploy.');
   } finally {
     state.leaderboardSaving = false;
     renderLeaderboard();
@@ -2776,14 +2886,17 @@ function finishGame(){
   const best = ranking[0];
   const bestScore = playerTotal(best);
 
+  const finishedAt = new Date().toISOString();
   const leaderboardEntries = state.players.map((player, index) => ({
+    id: `game-${finishedAt}-${index + 1}-${player.name}-${playerTotal(player)}`.toLowerCase().replace(/[^a-z0-9]+/g,'-'),
     name: player.name,
     score: playerTotal(player),
     mode: state.playerCount >= 2 ? 'multiplayer' : 'single',
     players: state.playerCount,
     playerIndex: index + 1,
     playerNames: state.players.map(p => p.name),
-    targetMode: state.targetMode
+    targetMode: state.targetMode,
+    createdAt: finishedAt
   }));
   submitLeaderboardScores(leaderboardEntries);
 
@@ -2858,7 +2971,8 @@ els.newBtn.onclick = () => { ensureAudio(); resetGame(); sfx.buy(); };
 els.playAgainBtn.onclick = () => { ensureAudio(); resetGame(); sfx.buy(); };
 els.closeEndBtn.onclick = () => els.endModal.classList.remove('show');
 els.endModal.onclick = e => { if (e.target === els.endModal) els.endModal.classList.remove('show'); };
-if (els.allTimeCard) els.allTimeCard.onclick = openLeaderboardModal;
+if (els.allTimeCard) els.allTimeCard.addEventListener('click', openLeaderboardModal);
+if (els.viewLeaderboardBtn) els.viewLeaderboardBtn.addEventListener('click', event => { event.stopPropagation(); openLeaderboardModal(); });
 if (els.closeLeaderboardBtn) els.closeLeaderboardBtn.onclick = () => els.leaderboardModal.classList.remove('show');
 if (els.leaderboardModal) els.leaderboardModal.onclick = e => { if (e.target === els.leaderboardModal) els.leaderboardModal.classList.remove('show'); };
 els.showWinnerBtn.onclick = showStandings;
@@ -3030,6 +3144,8 @@ loadPlayerNamePrefs();
 els.targetMode.value = 'forced';
 els.playerCount.dispatchEvent(new Event('change'));
 resetGame();
+mergeOnlineAndLocalLeaderboard([], loadLocalLeaderboardEntries());
+renderLeaderboard();
 loadOnlineLeaderboard();
 </script>
 </body>

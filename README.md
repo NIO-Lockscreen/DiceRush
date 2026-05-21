@@ -96,3 +96,12 @@ Added **67 Dice**. It banks exactly 67 points regardless of row, roll, or heat. 
 - After saving a new score, the visible Top 10 updates immediately instead of requiring a page refresh.
 - The client now does an optimistic local insert, posts to `/api/leaderboard`, and then reloads the Blob leaderboard with a cache-busting request.
 - Clicking the Top 10 card opens a full Top 10 modal showing all 10 ranks across single-player and multiplayer individual scores.
+
+
+## Leaderboard safety notes
+
+This version reads both the current Blob path and older leaderboard Blob paths, so a redeploy should not make the server list look wiped just because the storage filename changed. The browser also keeps a local Top 10 backup in `localStorage` and re-syncs those local scores to Vercel Blob without duplicating matching entries.
+
+Click the Online Top 10 card or the **View full Top 10** button to open the full shared leaderboard, even when it is empty.
+
+Dice descriptions now show only the current/base effect. Upgrade text appears in the upgrade preview and after the dice is actually upgraded.

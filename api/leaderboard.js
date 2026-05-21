@@ -1,6 +1,7 @@
 import { get, put } from '@vercel/blob';
 
 const LEADERBOARD_PATH = 'dice-rush/leaderboard.json';
+const LEGACY_LEADERBOARD_PATHS = ['leaderboards/dice-rush-top10.json', 'leaderboards/dice-rush-shared-top10.json'];
 const MAX_ENTRIES = 10;
 const EMPTY_BOARD = { scores: [], updatedAt: null };
 
@@ -76,9 +77,35 @@ function cleanEntry(input) {
   };
 }
 
+function entrySignature(entry) {
+  const playerNames = Array.isArray(entry?.playerNames)
+    ? entry.playerNames.map((name) => cleanName(name).toLowerCase()).join(' vs ')
+    : '';
+  return [
+    cleanName(entry?.name).toLowerCase(),
+    Math.floor(Number(entry?.score || 0)),
+    entry?.mode === 'multiplayer' ? 'multi' : 'single',
+    Number(entry?.players || 1),
+    Number(entry?.playerIndex || 1),
+    entry?.targetMode === 'pick' ? 'pick' : 'forced',
+    playerNames
+  ].join('|');
+}
+
+function dedupeEntries(entries) {
+  const bySignature = new Map();
+  (entries || []).map(cleanEntry).filter(Boolean).forEach((entry) => {
+    const sig = entrySignature(entry);
+    const existing = bySignature.get(sig);
+    if (!existing || String(entry.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
+      bySignature.set(sig, entry);
+    }
+  });
+  return [...bySignature.values()];
+}
+
 function sortAndTrim(board) {
-  board.scores = (Array.isArray(board.scores) ? board.scores : [])
-    .filter(Boolean)
+  board.scores = dedupeEntries(Array.isArray(board.scores) ? board.scores : [])
     .sort((a, b) => b.score - a.score || String(a.createdAt).localeCompare(String(b.createdAt)))
     .slice(0, MAX_ENTRIES);
   return board;
@@ -96,7 +123,7 @@ function normalizeBoard(board) {
     updatedAt: board?.updatedAt || null
   };
 
-  next.scores = next.scores.map(cleanEntry).filter(Boolean);
+  next.scores = dedupeEntries(next.scores);
   return sortAndTrim(next);
 }
 
@@ -106,35 +133,66 @@ function lowestScore(entries) {
 }
 
 function mergeEntries(board, entries) {
-  let saved = false;
+  const before = JSON.stringify(sortAndTrim({ scores: board.scores || [] }).scores);
+  const beforeSignatures = new Set((board.scores || []).map(entrySignature));
   const accepted = [];
 
   for (const entry of entries) {
-    const before = JSON.stringify(board.scores);
-
-    if (entry.score > lowestScore(board.scores)) {
+    const sig = entrySignature(entry);
+    const couldEnter = entry.score > lowestScore(board.scores || []);
+    if (couldEnter && !beforeSignatures.has(sig)) {
       board.scores.push(entry);
-      sortAndTrim(board);
+      beforeSignatures.add(sig);
     }
+  }
 
-    const didSave = before !== JSON.stringify(board.scores);
-    saved = saved || didSave;
-    accepted.push({ id: entry.id, name: entry.name, score: entry.score, mode: entry.mode, saved: didSave });
+  sortAndTrim(board);
+  const after = JSON.stringify(board.scores);
+  const afterSignatures = new Set((board.scores || []).map(entrySignature));
+  const saved = before !== after;
+
+  for (const entry of entries) {
+    const sig = entrySignature(entry);
+    accepted.push({
+      id: entry.id,
+      name: entry.name,
+      score: entry.score,
+      mode: entry.mode,
+      saved: saved && afterSignatures.has(sig) && !JSON.parse(before).some((oldEntry) => entrySignature(oldEntry) === sig)
+    });
   }
 
   if (saved) board.updatedAt = new Date().toISOString();
   return { board, saved, accepted };
 }
 
-async function loadBoard() {
-  const result = await get(LEADERBOARD_PATH, { access: 'public' });
-  if (!result || result.statusCode !== 200) {
-    return { board: { ...EMPTY_BOARD }, etag: null };
-  }
-
+async function readBoardFromPath(path) {
+  const result = await get(path, { access: 'public' });
+  if (!result || result.statusCode !== 200) return null;
   const text = await streamToText(result.stream);
   const parsed = text ? JSON.parse(text) : EMPTY_BOARD;
-  return { board: normalizeBoard(parsed), etag: result.blob?.etag || null };
+  return { board: normalizeBoard(parsed), etag: result.blob?.etag || null, path };
+}
+
+async function loadBoard() {
+  const primary = await readBoardFromPath(LEADERBOARD_PATH);
+  let board = primary ? primary.board : { ...EMPTY_BOARD, scores: [] };
+  let etag = primary ? primary.etag : null;
+
+  for (const legacyPath of LEGACY_LEADERBOARD_PATHS) {
+    try {
+      const legacy = await readBoardFromPath(legacyPath);
+      if (legacy?.board?.scores?.length) {
+        board.scores.push(...legacy.board.scores);
+        board.updatedAt = board.updatedAt || legacy.board.updatedAt || null;
+      }
+    } catch (error) {
+      // Ignore missing or unreadable legacy paths.
+    }
+  }
+
+  board = sortAndTrim(board);
+  return { board, etag };
 }
 
 async function saveBoard(board, etag) {
