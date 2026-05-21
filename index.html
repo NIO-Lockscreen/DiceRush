@@ -1,0 +1,2799 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dice Rush — Vercel Leaderboard Edition</title>
+<style>
+:root{
+  --bg0:#080712;--bg1:#14112d;--bg2:#231b43;
+  --panel:rgba(255,255,255,.08);--line:rgba(255,255,255,.15);
+  --text:#f8f5ff;--muted:rgba(248,245,255,.7);--soft:rgba(248,245,255,.5);
+  --pink:#ff62d0;--purple:#9f66ff;--cyan:#67ddff;--green:#79ff9b;--gold:#ffd469;--red:#ff6f82;
+  --shadow:0 24px 70px rgba(0,0,0,.45);
+  --radius:28px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--text);min-height:100vh;overflow-x:hidden;background:
+  radial-gradient(circle at 18% 0%, rgba(255,98,208,.26), transparent 30%),
+  radial-gradient(circle at 85% 8%, rgba(103,221,255,.18), transparent 34%),
+  radial-gradient(circle at 50% 100%, rgba(159,102,255,.22), transparent 36%),
+  linear-gradient(145deg,var(--bg0),var(--bg1) 45%,var(--bg2));}
+body::before{display:none}
+button,select,input{font:inherit;color:inherit}
+select,input{background:#241d42;color:var(--text);accent-color:var(--pink)}
+select option{background:#241d42;color:#f8f5ff}
+select:focus,input:focus{outline:2px solid rgba(103,221,255,.42);outline-offset:2px}
+button{border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:disabled{opacity:.55;cursor:not-allowed}
+.app{width:min(1480px,calc(100% - 22px));margin:0 auto;padding:18px 0 40px;position:relative;z-index:1}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.logo{width:58px;height:58px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(145deg,var(--gold),var(--pink));box-shadow:0 18px 52px rgba(255,98,208,.26), inset 0 1px 0 rgba(255,255,255,.45);font-size:28px;font-weight:1000;transform:rotate(-8deg)}
+h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em}
+.sub{margin-top:7px;color:var(--muted);font-size:14px}
+.actions,.setup{display:flex;gap:10px;flex-wrap:wrap}
+.topRight{display:flex;flex-direction:column;align-items:flex-end;gap:10px;min-width:260px}
+.allTimeCard{width:min(320px,100%);border-radius:24px;border:1px solid rgba(255,212,105,.34);background:radial-gradient(circle at 18% 0%,rgba(255,212,105,.22),transparent 42%),linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.065));box-shadow:0 18px 52px rgba(255,212,105,.12),inset 0 1px 0 rgba(255,255,255,.16);padding:13px 15px;text-align:right}
+.allTimeLabel{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:1000;color:var(--muted)}
+.allTimeScore{font-size:38px;line-height:.95;font-weight:1000;letter-spacing:-.07em;color:var(--gold);text-shadow:0 0 22px rgba(255,212,105,.26);margin-top:5px}
+.allTimeName{font-size:13px;color:var(--text);font-weight:900;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.allTimeMeta{font-size:11px;color:var(--muted);margin-top:2px}
+.musicCard{width:min(320px,100%);border-radius:22px;border:1px solid rgba(103,221,255,.22);background:linear-gradient(145deg,rgba(103,221,255,.10),rgba(255,255,255,.055));box-shadow:0 16px 40px rgba(103,221,255,.08),inset 0 1px 0 rgba(255,255,255,.12);padding:11px 13px;text-align:right}
+.musicHead{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:1000;color:var(--muted)}
+.musicBadge{font-size:10px;letter-spacing:.08em;color:#071116;background:linear-gradient(145deg,var(--cyan),var(--green));border-radius:999px;padding:4px 8px;white-space:nowrap}
+.musicTrack{margin-top:7px;font-size:13px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.musicHint{margin-top:3px;font-size:11px;color:var(--muted);line-height:1.25}
+.musicCard.muted{border-color:rgba(255,111,130,.28);background:linear-gradient(145deg,rgba(255,111,130,.11),rgba(255,255,255,.045))}
+.musicCard.missing{opacity:.8}
+.musicPanel{width:min(620px,100%);text-align:left}
+.musicPanel .musicCard{width:100%;text-align:left;margin:12px 0 14px}
+.musicActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.musicActions .primary,.musicActions .pill{width:100%}
+#soundBtn{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+@media(max-width:560px){.musicActions{grid-template-columns:1fr}}
+.pill,.primary,.ghost,select,input{padding:11px 14px;border-radius:999px;background:rgba(255,255,255,.09);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:transform .18s ease, background .18s ease}
+.pill:hover,.primary:hover,.ghost:hover,select:hover{background:rgba(255,255,255,.13)}
+.primary{background:linear-gradient(135deg,var(--pink),var(--purple) 48%,var(--cyan));font-weight:1000;box-shadow:0 20px 56px rgba(159,102,255,.28), inset 0 1px 0 rgba(255,255,255,.4)}
+.ghost{background:rgba(255,255,255,.06)}
+.setup{margin-top:12px}
+.labelWrap{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.labelWrap select,.labelWrap input{color:var(--text);min-width:0}
+.layout{display:grid;grid-template-columns:minmax(340px,.95fr) minmax(360px,1fr) minmax(320px,.9fr);gap:16px;align-items:start}
+.panel{position:relative;border-radius:var(--radius);border:1px solid var(--line);background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.07));box-shadow:var(--shadow);overflow:hidden}
+.panel::before{display:none}
+.in{position:relative;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.stat{border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);border-radius:20px;padding:11px;min-height:74px}
+.lab{font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--muted)}
+.val{margin-top:5px;font-size:27px;font-weight:1000;letter-spacing:-.05em}
+.val.gold{color:var(--gold);text-shadow:0 0 18px rgba(255,212,105,.28)}
+.playerRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.playerChip{flex:1 1 0;min-width:0;padding:11px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.16);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.playerChip.active{background:linear-gradient(145deg, rgba(255,98,208,.18), rgba(103,221,255,.16));border-color:rgba(255,255,255,.24);box-shadow:0 0 0 1px rgba(255,255,255,.06), 0 0 24px rgba(159,102,255,.14)}
+.playerChip strong{font-size:14px}
+.playerChip small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.playerChip .pScore{font-size:22px;font-weight:1000;letter-spacing:-.04em}
+.meterWrap{border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);border-radius:22px;padding:12px;margin-bottom:14px}
+.meterTop{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;margin-bottom:8px}
+.meter{height:12px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}.fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--green),var(--gold));box-shadow:0 0 24px rgba(121,255,155,.35);transition:width .45s cubic-bezier(.2,.9,.1,1)}
+.targetCard{border-radius:22px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);padding:13px;margin-bottom:14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.targetTitle{font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--muted)}
+.targetName{font-size:26px;font-weight:1000;letter-spacing:-.05em;margin-top:4px}
+.targetDesc{color:var(--muted);font-size:13px;margin-top:4px}
+.targetBadge{padding:9px 12px;border-radius:999px;background:linear-gradient(145deg,rgba(255,98,208,.22),rgba(103,221,255,.18));border:1px solid rgba(255,255,255,.14);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+.targetControls{min-width:220px}
+.diceStage{padding:14px;border-radius:28px;border:1px solid rgba(255,255,255,.12);background:radial-gradient(circle at 50% 8%, rgba(255,255,255,.08), transparent 44%), rgba(0,0,0,.18);overflow:hidden;scrollbar-width:none;-ms-overflow-style:none}
+.diceStage::-webkit-scrollbar{display:none}
+.diceRail{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(6px,1vw,10px);min-width:0}
+.die{width:100%;aspect-ratio:1;border-radius:22px;position:relative;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:15%;background:linear-gradient(145deg,#f8f7ff,#d8d4ef);box-shadow:0 18px 36px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.75), inset 0 -10px 20px rgba(70,55,120,.16);transition:transform .18s ease, box-shadow .18s ease, filter .18s ease}
+.die:hover{transform:translateY(-5px)}
+.die.held{background:linear-gradient(145deg,#fff7da,var(--gold));box-shadow:0 18px 42px rgba(255,212,105,.3), inset 0 2px 0 rgba(255,255,255,.8);outline:3px solid rgba(255,255,255,.28);transform:translateY(-8px) scale(1.03)}
+.die.match{box-shadow:0 0 0 2px rgba(121,255,155,.38), 0 0 28px rgba(121,255,155,.26), 0 18px 36px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.75)}
+.die.match::after{content:"";position:absolute;inset:-5px;border-radius:26px;border:2px solid rgba(121,255,155,.6);animation:pulseRing 1.4s ease-in-out infinite;pointer-events:none}
+@keyframes pulseRing{0%,100%{opacity:.35;transform:scale(.98)}50%{opacity:1;transform:scale(1.02)}}
+.die.lock{filter:grayscale(.18) brightness(.88)}
+.pip{width:60%;aspect-ratio:1;align-self:center;justify-self:center;border-radius:50%;background:radial-gradient(circle at 35% 30%, #5c4b98, #19152e 68%);opacity:0;transform:scale(.5);transition:opacity .12s ease, transform .12s ease}
+.die[data-v="1"] .pip:nth-child(5), .die[data-v="2"] .pip:nth-child(1), .die[data-v="2"] .pip:nth-child(9), .die[data-v="3"] .pip:nth-child(1), .die[data-v="3"] .pip:nth-child(5), .die[data-v="3"] .pip:nth-child(9), .die[data-v="4"] .pip:nth-child(1), .die[data-v="4"] .pip:nth-child(3), .die[data-v="4"] .pip:nth-child(7), .die[data-v="4"] .pip:nth-child(9), .die[data-v="5"] .pip:nth-child(1), .die[data-v="5"] .pip:nth-child(3), .die[data-v="5"] .pip:nth-child(5), .die[data-v="5"] .pip:nth-child(7), .die[data-v="5"] .pip:nth-child(9), .die[data-v="6"] .pip:nth-child(1), .die[data-v="6"] .pip:nth-child(3), .die[data-v="6"] .pip:nth-child(4), .die[data-v="6"] .pip:nth-child(6), .die[data-v="6"] .pip:nth-child(7), .die[data-v="6"] .pip:nth-child(9){opacity:1;transform:scale(1)}
+.rolling .die:not(.held){animation:rollDance .68s cubic-bezier(.2,.85,.2,1) infinite;filter:brightness(1.02) blur(.5px)}
+.rolling .die:nth-child(2){animation-delay:.06s}.rolling .die:nth-child(3){animation-delay:.12s}.rolling .die:nth-child(4){animation-delay:.18s}.rolling .die:nth-child(5){animation-delay:.24s}
+@keyframes rollDance{0%{transform:translateY(0) rotate(0) scale(1)}20%{transform:translateY(-10px) rotate(9deg) scale(1.05)}40%{transform:translateY(7px) rotate(-12deg) scale(.96)}60%{transform:translateY(-8px) rotate(15deg) scale(1.03)}80%{transform:translateY(4px) rotate(-8deg) scale(.98)}100%{transform:translateY(0) rotate(0) scale(1)}}
+.controls{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px}
+.roll{min-height:62px;border-radius:24px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--pink),var(--purple) 52%,var(--cyan));font-size:19px;font-weight:1000;box-shadow:0 22px 56px rgba(159,102,255,.28), inset 0 1px 0 rgba(255,255,255,.42)}
+.roll::after{content:"";position:absolute;inset:-40% -80%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.44),transparent);transform:translateX(-70%) rotate(18deg);transition:transform .6s ease}.roll:hover::after{transform:translateX(70%) rotate(18deg)}
+.hint{margin:12px 4px 0;color:var(--muted);font-size:13px;line-height:1.45}
+.moment{margin-top:14px;min-height:84px;border-radius:24px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.16);display:flex;align-items:center;gap:13px;padding:14px}.momentIcon{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(255,212,105,.88),rgba(255,98,208,.8));font-size:27px;flex:0 0 auto}.momentTitle{font-size:19px;font-weight:1000;letter-spacing:-.03em}.momentCopy{margin-top:3px;color:var(--muted);font-size:13px}
+.heatCard{--heatProgress:0%;--flameScale:0;--flameOpacity:0;--heatGlow:0;margin-top:14px;border-radius:24px;border:1px solid rgba(255,255,255,.13);background:radial-gradient(circle at var(--heatProgress) 0%,rgba(255,77,45,calc(var(--heatGlow)*.22)),transparent 34%),rgba(0,0,0,.18);padding:14px;overflow:hidden;position:relative}.heatCard::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,77,45,.05),rgba(255,170,36,calc(var(--heatGlow)*.16)));opacity:calc(.25 + var(--heatGlow)*.75);pointer-events:none}.heatTop{position:relative;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.heatLabel{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:1000}.heatValue{font-size:30px;line-height:1;font-weight:1000;color:#ff4b2f;text-shadow:0 0 calc(4px + var(--heatGlow)*28px) rgba(255,75,47,.55)}.heatTrack{position:relative;height:24px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 2px 12px rgba(0,0,0,.28);overflow:visible}.heatFill{height:100%;width:var(--heatProgress);border-radius:999px;background:linear-gradient(90deg,#6a150f,#e73522,#ff7a22,#ffd169);box-shadow:0 0 calc(var(--heatGlow)*38px) rgba(255,75,47,.52), inset 0 1px 0 rgba(255,255,255,.22);transition:width .28s cubic-bezier(.2,.9,.1,1),box-shadow .28s ease}.heatFlame{position:absolute;left:var(--heatProgress);top:50%;transform:translate(-50%,-61%) scale(var(--flameScale));font-size:42px;opacity:var(--flameOpacity);filter:drop-shadow(0 0 calc(8px + var(--heatGlow)*32px) rgba(255,82,38,.78));transition:left .28s cubic-bezier(.2,.9,.1,1),opacity .2s ease,transform .28s cubic-bezier(.2,1.25,.2,1);animation:heatFlicker .56s ease-in-out infinite alternate;pointer-events:none}.heatScale{position:relative;display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--soft);font-weight:900}.heatCopy{position:relative;margin-top:8px;color:var(--muted);font-size:12px;line-height:1.35}.heatCard.blazing{border-color:rgba(255,122,34,.55);box-shadow:0 0 0 1px rgba(255,75,47,.18),0 0 34px rgba(255,75,47,.18)}.heatCard.blazing .heatFlame{font-size:58px;animation:heatFlicker .32s ease-in-out infinite alternate}.heatSparks{position:absolute;inset:0;pointer-events:none;opacity:calc(var(--heatGlow)*.9);background-image:radial-gradient(circle,rgba(255,212,105,.8) 0 2px,transparent 3px),radial-gradient(circle,rgba(255,88,45,.68) 0 1.5px,transparent 2.5px);background-size:42px 42px,64px 64px;background-position:0 0,15px 21px;mask-image:linear-gradient(90deg,transparent,black var(--heatProgress),transparent);animation:heatSparkDrift 1.1s linear infinite}.heatCard:not(.hot) .heatSparks{display:none}@keyframes heatFlicker{0%{filter:drop-shadow(0 0 calc(8px + var(--heatGlow)*22px) rgba(255,82,38,.7));transform:translate(-50%,-61%) scale(var(--flameScale)) rotate(-3deg)}100%{filter:drop-shadow(0 0 calc(14px + var(--heatGlow)*36px) rgba(255,170,36,.85));transform:translate(-50%,-64%) scale(calc(var(--flameScale)*1.08)) rotate(4deg)}}@keyframes heatSparkDrift{from{background-position:0 0,15px 21px}to{background-position:42px -42px,79px -43px}}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.head h2{margin:0;font-size:24px;letter-spacing:-.04em}.section{display:flex;justify-content:space-between;align-items:center;margin:13px 4px 8px;color:var(--muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}
+.scoreGrid,.shopGrid,.inventory{display:grid;gap:8px}
+.category{width:100%;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;text-align:left;padding:12px;min-height:60px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);transition:transform .16s ease, border-color .16s ease, background .16s ease}
+.category:hover:not(:disabled){transform:translateX(4px);background:rgba(255,255,255,.12);border-color:rgba(103,221,255,.4)}
+.category.used{background:rgba(121,255,155,.1);border-color:rgba(121,255,155,.22)}
+.category.target{border-color:rgba(255,212,105,.66);box-shadow:0 0 0 1px rgba(255,212,105,.22), 0 0 24px rgba(255,212,105,.12)}
+.category.lockedTarget{filter:saturate(.65);opacity:.7}
+.catName{font-weight:1000;letter-spacing:-.02em}.catDesc{color:var(--muted);font-size:12px;margin-top:2px}.chip{min-width:58px;height:38px;border-radius:999px;display:grid;place-items:center;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.11);font-weight:1000;font-size:16px}.used .chip{background:linear-gradient(145deg,var(--green),var(--cyan));color:#071116}
+.category.twoPlayer{grid-template-columns:1fr minmax(132px,auto)}.scoreDuel{display:grid;grid-template-columns:repeat(2,minmax(58px,1fr));gap:6px;min-width:136px}.duelChip{border-radius:15px;padding:5px 7px;background:rgba(0,0,0,.23);border:1px solid rgba(255,255,255,.12);text-align:center;line-height:1.05}.duelChip.scored{background:linear-gradient(145deg,rgba(121,255,155,.9),rgba(103,221,255,.78));color:#071116}.duelChip.active{border-color:rgba(255,212,105,.8);box-shadow:0 0 0 1px rgba(255,212,105,.18),0 0 18px rgba(255,212,105,.12)}.duelChip.preview{background:rgba(255,212,105,.16);border-color:rgba(255,212,105,.34)}.duelName{font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:.08em;opacity:.78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.duelValue{margin-top:4px;font-size:18px;font-weight:1000;letter-spacing:-.04em}.turnLast{color:var(--gold);font-weight:900}
+.footerScores{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.scoreBox{padding:11px;border-radius:18px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12)}.scoreBox span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:900}.scoreBox strong{display:block;margin-top:4px;font-size:22px;letter-spacing:-.04em}
+.inventory{grid-template-columns:repeat(3,1fr);margin-bottom:12px}.slot{min-height:86px;border-radius:18px;border:1px dashed rgba(255,255,255,.2);background:rgba(0,0,0,.16);padding:10px;text-align:center;display:flex;flex-direction:column;justify-content:center}.slot.owned{border-style:solid;background:linear-gradient(180deg,rgba(255,212,105,.14),rgba(255,255,255,.07))}.slotEmoji{font-size:25px}.slotName{font-size:12px;font-weight:1000;margin-top:4px}.slotText{color:var(--muted);font-size:11px;line-height:1.25;margin-top:3px}.slot.owned{cursor:pointer;color:var(--text);transition:border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease}.slot.owned:hover{border-color:rgba(255,212,105,.44);background:linear-gradient(180deg,rgba(255,212,105,.19),rgba(255,255,255,.09));transform:translateY(-1px)}.slot.selected{border-color:rgba(255,212,105,.9);box-shadow:0 0 0 2px rgba(255,212,105,.2),0 0 28px rgba(255,212,105,.16);background:linear-gradient(180deg,rgba(255,212,105,.24),rgba(255,98,208,.10))}.slot.selected .slotText{color:#ffe39b}.slot.usedPulse{animation:usedDicePulse .78s cubic-bezier(.2,1.2,.2,1) both;z-index:2}.slot.usedPulse .slotEmoji{animation:usedDiceEmoji .78s ease-in-out both}@keyframes usedDicePulse{0%{transform:scale(1);box-shadow:0 0 0 rgba(255,212,105,0)}22%{transform:scale(1.08) rotate(-2deg);box-shadow:0 0 0 4px rgba(255,212,105,.22),0 0 40px rgba(255,98,208,.32)}48%{transform:scale(.98) rotate(2deg)}72%{transform:scale(1.06) rotate(-1deg);box-shadow:0 0 0 3px rgba(103,221,255,.20),0 0 34px rgba(103,221,255,.24)}100%{transform:scale(1);box-shadow:0 0 0 rgba(255,212,105,0)}}@keyframes usedDiceEmoji{0%,100%{transform:translateY(0) rotate(0) scale(1)}25%{transform:translateY(-7px) rotate(-12deg) scale(1.18)}50%{transform:translateY(2px) rotate(12deg) scale(1.05)}75%{transform:translateY(-5px) rotate(-7deg) scale(1.12)}}
+.shopGrid{margin-top:8px}.item{width:100%;text-align:left;border-radius:20px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);padding:12px;display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:center;transition:border-color .16s ease, background .16s ease, box-shadow .16s ease}.item:hover:not(:disabled){background:rgba(255,255,255,.12);border-color:rgba(255,212,105,.38);box-shadow:inset 0 0 0 1px rgba(255,212,105,.10),0 0 24px rgba(255,212,105,.08)}.emoji{width:46px;height:46px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,rgba(255,212,105,.9),rgba(255,98,208,.78));box-shadow:0 14px 36px rgba(255,212,105,.14);font-size:25px}.price{font-weight:1000;color:var(--gold);white-space:nowrap}.rarity{display:inline-block;margin-left:6px;font-size:10px;font-weight:1000;text-transform:uppercase;padding:3px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.18)}.rarity-common{background:rgba(121,255,155,.18);color:#a9ffbd}.rarity-uncommon{background:rgba(103,221,255,.18);color:#9decff}.rarity-rare{background:rgba(255,98,208,.20);color:#ffafe8}.rarity-legend{background:rgba(255,212,105,.22);color:#ffe39b;box-shadow:0 0 18px rgba(255,212,105,.18)}.rarity-cursed{background:rgba(255,111,130,.18);color:#ff9cab;box-shadow:0 0 18px rgba(255,111,130,.16)}.shopBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.log{margin-top:12px;max-height:170px;overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);padding:10px;color:var(--muted);font-size:12px;line-height:1.42}.log b{color:var(--text)}
+.explainerBtn{width:100%;margin-top:9px}.guideIntro{color:var(--muted);font-size:13px;line-height:1.45;margin:8px 0 14px}.guideGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:min(68vh,720px);overflow:auto;padding-right:4px}.guideCard{border-radius:20px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.07);padding:12px;text-align:left}.guideCard.locked{filter:saturate(.55);opacity:.58;background:rgba(0,0,0,.18)}.guideTop{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;margin-bottom:8px}.guideEmoji{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;font-size:23px;background:linear-gradient(145deg,rgba(255,212,105,.85),rgba(255,98,208,.7))}.guideName{font-weight:1000;letter-spacing:-.02em}.guideDesc{color:var(--text);font-size:13px;line-height:1.42}.guideExample{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.4;border-top:1px solid rgba(255,255,255,.1);padding-top:8px}.guideLock{margin-top:8px;color:var(--gold);font-size:12px;font-weight:900}.guideMetaLine{font-size:12px;color:var(--muted);margin-top:2px} @media(max-width:650px){.guideGrid{grid-template-columns:1fr}}.toastStack{position:fixed;top:18px;right:18px;z-index:50;display:grid;gap:10px;pointer-events:none}.toast{width:min(360px,calc(100vw - 36px));border-radius:20px;padding:13px 14px;background:rgba(20,16,42,.84);border:1px solid rgba(255,255,255,.18);box-shadow:var(--shadow);backdrop-filter:blur(18px);animation:toastIn .34s cubic-bezier(.2,1.2,.2,1) both}@keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(.96)}}
+.floatScore{position:fixed;z-index:45;pointer-events:none;font-weight:1000;font-size:34px;color:var(--gold);text-shadow:0 4px 20px rgba(0,0,0,.45);animation:floatUp 1.05s ease-out forwards}@keyframes floatUp{from{opacity:0;transform:translate(-50%,20px) scale(.8)}18%{opacity:1}to{opacity:0;transform:translate(-50%,-80px) scale(1.16)}}
+.particle{position:fixed;width:10px;height:10px;border-radius:999px;z-index:44;pointer-events:none;animation:particleFly .85s ease-out forwards;box-shadow:0 0 18px currentColor}@keyframes particleFly{to{opacity:0;transform:translate(var(--x),var(--y)) scale(.2) rotate(240deg)}}
+.pop{position:fixed;inset:0;z-index:40;pointer-events:none;background:radial-gradient(circle,rgba(255,212,105,.24),transparent 45%);animation:popFade .55s ease-out forwards}@keyframes popFade{to{opacity:0}}
+.comboTicker{position:fixed;left:50%;top:38%;z-index:66;pointer-events:none;transform:translate(-50%,-50%);min-width:min(520px,calc(100vw - 28px));padding:18px 22px;border-radius:28px;text-align:center;border:1px solid rgba(255,255,255,.22);background:radial-gradient(circle at 50% 0%,rgba(255,212,105,.28),transparent 46%),linear-gradient(145deg,rgba(24,18,48,.95),rgba(9,8,20,.92));box-shadow:0 28px 86px rgba(0,0,0,.55),0 0 52px rgba(255,98,208,.18);animation:comboPop 1.12s cubic-bezier(.2,1.2,.2,1) both}.comboTicker.fire{background:radial-gradient(circle at 50% 0%,rgba(255,212,105,.42),transparent 38%),radial-gradient(circle at 20% 100%,rgba(255,98,208,.28),transparent 44%),linear-gradient(145deg,rgba(55,20,15,.96),rgba(13,8,24,.94));box-shadow:0 30px 100px rgba(0,0,0,.58),0 0 48px rgba(255,111,130,.36),0 0 90px rgba(255,212,105,.20);animation:comboPop 1.12s cubic-bezier(.2,1.2,.2,1) both, comboFire .15s ease-in-out infinite alternate}.comboKicker{font-size:12px;text-transform:uppercase;letter-spacing:.18em;font-weight:1000;color:var(--muted)}.comboBig{font-size:clamp(40px,9vw,86px);line-height:.92;font-weight:1000;letter-spacing:-.08em;margin-top:5px;background:linear-gradient(135deg,var(--gold),var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 26px rgba(255,212,105,.18)}.comboSub{margin-top:8px;color:var(--muted);font-size:14px;font-weight:900}.comboTicks{display:flex;justify-content:center;gap:5px;margin-top:11px}.comboTick{width:10px;height:10px;border-radius:999px;background:var(--gold);box-shadow:0 0 18px rgba(255,212,105,.55);animation:tickGlow .72s ease-in-out both}.comboTick:nth-child(2){animation-delay:.06s}.comboTick:nth-child(3){animation-delay:.12s}.comboTick:nth-child(4){animation-delay:.18s}.comboTick:nth-child(5){animation-delay:.24s}.comboTick:nth-child(6){animation-delay:.30s}@keyframes comboPop{0%{opacity:0;transform:translate(-50%,-42%) scale(.72) rotate(-1deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.08) rotate(.4deg)}64%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.96)}}@keyframes comboFire{from{filter:saturate(1) brightness(1)}to{filter:saturate(1.28) brightness(1.12)}}@keyframes tickGlow{0%{transform:translateY(8px) scale(.4);opacity:.25}45%{transform:translateY(-4px) scale(1.25);opacity:1}100%{transform:translateY(0) scale(1);opacity:.85}}
+
+.diceRewardStep{position:fixed;left:50%;top:44%;z-index:68;pointer-events:none;transform:translate(-50%,-50%);min-width:min(360px,calc(100vw - 34px));padding:16px 18px;border-radius:28px;text-align:center;border:1px solid rgba(255,255,255,.24);background:radial-gradient(circle at 50% 0%,rgba(255,212,105,.34),transparent 42%),linear-gradient(145deg,rgba(28,22,58,.96),rgba(10,8,24,.94));box-shadow:0 30px 90px rgba(0,0,0,.56),0 0 38px rgba(255,212,105,.22);animation:diceRewardPunch .62s cubic-bezier(.16,1.2,.24,1) both}.diceRewardStep.hot{background:radial-gradient(circle at 50% 0%,rgba(255,212,105,.46),transparent 38%),radial-gradient(circle at 22% 100%,rgba(255,98,208,.30),transparent 45%),linear-gradient(145deg,rgba(60,23,20,.97),rgba(13,8,26,.95));box-shadow:0 30px 96px rgba(0,0,0,.58),0 0 50px rgba(255,111,130,.34),0 0 85px rgba(255,212,105,.20);animation:diceRewardPunch .62s cubic-bezier(.16,1.2,.24,1) both, rewardFire .12s ease-in-out infinite alternate}.diceRewardCount{font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:1000;color:var(--gold)}.diceRewardEmoji{font-size:clamp(44px,9vw,78px);line-height:.95;margin:5px 0 3px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.35));animation:rewardEmojiKick .62s cubic-bezier(.2,1.3,.2,1) both}.diceRewardName{font-size:clamp(21px,5vw,36px);line-height:1;font-weight:1000;letter-spacing:-.055em}.diceRewardCopy{margin-top:7px;color:var(--muted);font-size:13px;font-weight:900}.slot.chainFocus{border-color:rgba(255,212,105,1)!important;box-shadow:0 0 0 3px rgba(255,212,105,.24),0 0 46px rgba(255,212,105,.38),0 0 82px rgba(255,98,208,.18)!important;background:linear-gradient(180deg,rgba(255,212,105,.30),rgba(255,98,208,.13))!important;transform:scale(1.07) rotate(-1deg)!important;z-index:3}.slot.chainFocus .slotEmoji{animation:rewardEmojiKick .62s cubic-bezier(.2,1.3,.2,1) both}@keyframes diceRewardPunch{0%{opacity:0;transform:translate(-50%,-42%) scale(.68) rotate(-1deg)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.11) rotate(.5deg)}54%{opacity:1;transform:translate(-50%,-50%) scale(.98) rotate(0)}100%{opacity:0;transform:translate(-50%,-58%) scale(.94)}}@keyframes rewardEmojiKick{0%{transform:translateY(8px) scale(.65) rotate(-10deg)}35%{transform:translateY(-7px) scale(1.22) rotate(8deg)}65%{transform:translateY(1px) scale(.98) rotate(-3deg)}100%{transform:translateY(0) scale(1) rotate(0)}}@keyframes rewardFire{from{filter:saturate(1) brightness(1)}to{filter:saturate(1.35) brightness(1.16)}}
+.turnBanner{position:fixed;inset:0;z-index:65;display:grid;place-items:center;pointer-events:none;opacity:0;transform:scale(.96);transition:opacity .18s ease, transform .18s ease}
+.turnBanner.show{opacity:1;transform:scale(1)}
+.turnBannerCard{max-width:min(720px,calc(100vw - 32px));padding:28px 32px;border-radius:34px;text-align:center;border:1px solid rgba(255,255,255,.22);background:radial-gradient(circle at 20% 0%,rgba(255,212,105,.24),transparent 40%),linear-gradient(145deg,rgba(36,29,66,.95),rgba(13,10,30,.94));box-shadow:0 30px 90px rgba(0,0,0,.52);backdrop-filter:blur(18px);animation:turnPunch 1.35s cubic-bezier(.2,1,.2,1) both}
+.turnKicker{font-size:13px;text-transform:uppercase;letter-spacing:.16em;font-weight:1000;color:var(--muted);margin-bottom:8px}.turnName{font-size:clamp(42px,10vw,96px);line-height:.9;font-weight:1000;letter-spacing:-.08em;background:linear-gradient(135deg,var(--gold),var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}.turnSub{margin-top:10px;color:var(--muted);font-size:15px;font-weight:800}
+@keyframes turnPunch{0%{opacity:0;transform:translateY(18px) scale(.82) rotate(-1deg)}18%{opacity:1;transform:translateY(0) scale(1.04) rotate(.4deg)}55%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-10px) scale(.98)}}
+.yahtzeeStorm{position:fixed;inset:0;z-index:69;pointer-events:none;display:none;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 50%,rgba(255,212,105,.24),transparent 26%),radial-gradient(circle at 20% 20%,rgba(255,98,208,.22),transparent 32%),radial-gradient(circle at 80% 80%,rgba(103,221,255,.20),transparent 34%),rgba(7,4,18,.32)}
+.yahtzeeStorm.show{display:grid;animation:yahtzeeFlash 3s cubic-bezier(.2,1,.2,1) both}
+.yahtzeeStorm::before,.yahtzeeStorm::after{content:"";position:absolute;inset:-12%;background:conic-gradient(from 0deg,rgba(255,212,105,.18),transparent 18%,rgba(255,98,208,.16),transparent 38%,rgba(103,221,255,.18),transparent 62%,rgba(255,212,105,.16),transparent 84%);animation:stormSpin 1.4s linear infinite}
+.yahtzeeStorm::after{filter:blur(16px) saturate(1.2);opacity:.72;animation-direction:reverse}
+.yahtzeeStormCard{position:relative;z-index:1;text-align:center;padding:28px 32px;border-radius:36px;border:1px solid rgba(255,255,255,.3);background:radial-gradient(circle at 50% 0%,rgba(255,212,105,.28),transparent 44%),linear-gradient(145deg,rgba(56,18,16,.92),rgba(22,10,40,.95));box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 80px rgba(255,212,105,.28)}
+.yahtzeeKick{font-size:14px;text-transform:uppercase;letter-spacing:.22em;font-weight:1000;color:#ffe39b}
+.yahtzeeBig{font-size:clamp(72px,16vw,180px);line-height:.82;font-weight:1000;letter-spacing:-.12em;margin-top:10px;background:linear-gradient(135deg,#fff7d8,var(--gold),var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(255,212,105,.25);animation:yahtzeeSlam 1.7s cubic-bezier(.18,1.15,.2,1) both}
+.yahtzeeSub{margin-top:10px;font-size:16px;font-weight:900;color:rgba(255,255,255,.82)}
+.yahtzeeBolt{position:absolute;width:18px;height:110px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,212,105,.9),rgba(255,98,208,.15));box-shadow:0 0 28px rgba(255,212,105,.35);animation:boltFall .8s ease-in infinite}
+@keyframes yahtzeeFlash{0%{opacity:0}8%{opacity:1}12%{background:rgba(255,255,255,.18)}18%{background:rgba(7,4,18,.38)}86%{opacity:1}100%{opacity:0}}
+@keyframes stormSpin{from{transform:rotate(0deg) scale(1)}to{transform:rotate(360deg) scale(1.03)}}
+@keyframes yahtzeeSlam{0%{transform:scale(.45) rotate(-5deg);filter:blur(6px)}20%{transform:scale(1.12) rotate(1deg);filter:blur(0)}45%{transform:scale(.96) rotate(-1deg)}70%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes boltFall{0%{transform:translateY(-40vh) rotate(14deg);opacity:0}20%{opacity:1}100%{transform:translateY(55vh) rotate(-14deg);opacity:0}}
+
+.modalBg{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.58);backdrop-filter:blur(14px)}.modalBg.show{display:flex}.modal{width:min(560px,100%);border-radius:30px;border:1px solid rgba(255,255,255,.16);background:radial-gradient(circle at 20% 0%, rgba(255,212,105,.2), transparent 35%), linear-gradient(180deg, rgba(34,28,68,.97), rgba(14,12,30,.97));box-shadow:var(--shadow);padding:24px;text-align:center;animation:modalIn .36s cubic-bezier(.2,1.15,.2,1) both}@keyframes modalIn{from{opacity:0;transform:scale(.92) translateY(18px)}}.modal h2{margin:0;font-size:clamp(34px,8vw,62px);letter-spacing:-.07em}.final{font-size:72px;line-height:1;font-weight:1000;letter-spacing:-.08em;background:linear-gradient(135deg,var(--gold),var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;margin:12px 0}.modal p{color:var(--muted);line-height:1.5}.modalActions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:18px}
+@media(max-width:1200px){.layout{grid-template-columns:1fr 1fr}.shopPanel{grid-column:1/-1}}
+@media(max-width:880px){.topbar{flex-direction:column}.topRight{align-items:flex-start;width:100%}.allTimeCard{text-align:left;width:100%}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.inventory{grid-template-columns:repeat(6,1fr)}}
+@media(max-width:600px){.app{width:calc(100% - 14px);padding-top:10px}.stats{grid-template-columns:repeat(2,1fr)}.targetCard{grid-template-columns:1fr}.playerChip{min-width:140px}.inventory{grid-template-columns:repeat(3,1fr)}.controls,.shopBtns,.footerScores{grid-template-columns:1fr}.item{grid-template-columns:auto 1fr}.price{grid-column:2}.diceStage{padding:10px;border-radius:22px}.die{border-radius:clamp(12px,4vw,18px);padding:13%}.category.twoPlayer{grid-template-columns:1fr}.scoreDuel{min-width:0;margin-top:8px}}
+
+/* v15: active owned dice preview shine */
+.slot.activeBonus{position:relative;overflow:hidden;border-color:rgba(121,255,155,.95);background:linear-gradient(180deg,rgba(121,255,155,.22),rgba(103,221,255,.13));box-shadow:0 0 0 2px rgba(121,255,155,.18),0 0 30px rgba(121,255,155,.22),inset 0 1px 0 rgba(255,255,255,.18);animation:activeBonusGlow 1.15s ease-in-out infinite;}
+.slot.activeBonus::after{content:"";position:absolute;inset:-45%;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 48%,transparent 62%);transform:translateX(-70%) rotate(12deg);animation:activeBonusSweep 1.45s ease-in-out infinite;pointer-events:none;}
+.slot.activeBonus .slotText{color:#baffc8;font-weight:1000;text-shadow:0 0 10px rgba(121,255,155,.35);}
+.slot.activeBonus .slotEmoji{animation:activeBonusEmoji 1.1s ease-in-out infinite;}
+@keyframes activeBonusGlow{0%,100%{transform:translateY(0);filter:saturate(1)}50%{transform:translateY(-2px);filter:saturate(1.25)}}
+@keyframes activeBonusSweep{0%{transform:translateX(-75%) rotate(12deg);opacity:0}35%{opacity:.9}100%{transform:translateX(75%) rotate(12deg);opacity:0}}
+@keyframes activeBonusEmoji{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.11) rotate(-4deg)}}
+
+
+/* v16: roll shop + dice upgrades */
+.rollShopCard{margin-top:14px;border-radius:24px;border:1px solid rgba(255,212,105,.20);background:radial-gradient(circle at 18% 0%,rgba(255,212,105,.16),transparent 38%),rgba(0,0,0,.18);padding:14px;position:relative;overflow:hidden}.rollShopCard::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.05),transparent 55%);pointer-events:none}.rollShopHead{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.rollShopTitle{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:1000}.rollShopSub{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}.rollShopGrid{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rollShopBtn{min-height:78px;text-align:left;border-radius:18px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);padding:10px;display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;transition:transform .16s ease,border-color .16s ease,background .16s ease}.rollShopBtn:hover:not(:disabled){transform:translateY(-2px);background:rgba(255,255,255,.12);border-color:rgba(255,212,105,.45);box-shadow:0 0 28px rgba(255,212,105,.10)}.rollShopIcon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(255,212,105,.9),rgba(255,98,208,.72));font-size:22px}.rollShopName{font-weight:1000;letter-spacing:-.03em}.rollShopText{margin-top:2px;color:var(--muted);font-size:11px;line-height:1.25}.rollShopCost{color:var(--gold);font-weight:1000}.slot.upgraded{border-color:rgba(255,212,105,.95);background:linear-gradient(180deg,rgba(255,212,105,.27),rgba(103,221,255,.11));box-shadow:0 0 0 2px rgba(255,212,105,.18),0 0 34px rgba(255,212,105,.20)}.slot.upgraded .slotName{color:#ffe39b}.slot.upgraded .slotText{color:#ffe39b}.category.heatMiss{opacity:.78}.upgradeSpark{position:fixed;z-index:67;pointer-events:none;font-size:38px;animation:upgradeSparkFly .9s ease-out forwards;filter:drop-shadow(0 0 18px rgba(255,212,105,.7))}@keyframes upgradeSparkFly{0%{opacity:0;transform:translate(-50%,16px) scale(.5) rotate(-18deg)}20%{opacity:1;transform:translate(-50%,0) scale(1.2) rotate(8deg)}100%{opacity:0;transform:translate(-50%,-86px) scale(.8) rotate(38deg)}}@media(max-width:560px){.rollShopGrid{grid-template-columns:1fr}.rollShopBtn{min-height:68px}}
+
+.badDiceCallout{position:fixed;left:50%;top:28%;z-index:72;pointer-events:none;transform:translate(-50%,-50%);width:min(430px,calc(100vw - 30px));padding:16px 18px;border-radius:26px;text-align:center;border:1px solid rgba(255,111,130,.55);background:radial-gradient(circle at 50% 0%,rgba(255,111,130,.28),transparent 44%),linear-gradient(145deg,rgba(52,10,22,.97),rgba(12,8,24,.96));box-shadow:0 30px 96px rgba(0,0,0,.58),0 0 55px rgba(255,111,130,.28);animation:badDiceBox .22s cubic-bezier(.16,1.1,.24,1) both, badDiceShake .16s linear 3 .22s}.badDiceKicker{font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:1000;color:#ff9cab}.badDiceBig{font-size:clamp(32px,8vw,58px);line-height:.95;font-weight:1000;letter-spacing:-.065em;margin-top:5px;color:#ff6f82;text-shadow:0 0 22px rgba(255,111,130,.34)}.badDiceCopy{margin-top:8px;color:rgba(255,255,255,.82);font-size:14px;font-weight:900}.badDiceEmoji{font-size:42px;margin-bottom:4px;filter:drop-shadow(0 0 18px rgba(255,111,130,.52))}@keyframes badDiceBox{from{opacity:0;transform:translate(-50%,-42%) scale(.78) rotate(-2deg)}to{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}}@keyframes badDiceShake{0%,100%{transform:translate(-50%,-50%) rotate(0)}25%{transform:translate(calc(-50% - 7px),-50%) rotate(-1.5deg)}75%{transform:translate(calc(-50% + 7px),-50%) rotate(1.5deg)}}
+
+
+
+
+/* Vercel Blob leaderboard */
+.leaderboardTabs{display:flex;gap:6px;margin:10px 0 6px;justify-content:center;flex-wrap:wrap}
+.leaderboardTab{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:inherit;border-radius:999px;padding:7px 10px;font-weight:900;cursor:pointer;font-size:12px}
+.leaderboardTab.active{background:linear-gradient(135deg,rgba(255,214,102,.95),rgba(255,133,77,.9));color:#211000;border-color:transparent;box-shadow:0 8px 22px rgba(255,169,64,.22)}
+.leaderboardList{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:5px;text-align:left;max-height:260px;overflow:auto}
+.leaderboardList li{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:8px;padding:6px 8px;border-radius:12px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);font-size:12px}
+.leaderboardRank{opacity:.62;font-weight:900;text-align:right}
+.leaderboardWho{min-width:0;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.leaderboardScore{font-variant-numeric:tabular-nums;font-weight:1000;color:#ffd66b}
+.leaderboardSub{grid-column:2 / 4;color:rgba(255,255,255,.55);font-size:10px;margin-top:-3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.leaderboardStatus{margin-top:8px;font-size:11px;color:rgba(255,255,255,.58)}
+
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div>
+      <div class="brand">
+        <div class="logo">⚂</div>
+        <div>
+          <h1>Dice Rush</h1>
+          <div class="sub">Hot-seat singleplayer or multiplayer Yahtzee with a chaotic dice shop, target modes, juicy effects, and a much more animated roll.</div>
+        </div>
+      </div>
+      <div class="setup">
+        <label class="labelWrap">Players
+          <select id="playerCount">
+            <option value="1">Single player</option>
+            <option value="2">2 players</option>
+          </select>
+        </label>
+        <label class="labelWrap">Target mode
+          <select id="targetMode">
+            <option value="pick">Pick your target</option>
+            <option value="forced" selected>Forced order</option>
+          </select>
+        </label>
+        <label class="labelWrap">P1 name <input id="name1" value="Player 1" maxlength="16" /></label>
+        <label class="labelWrap">P2 name <input id="name2" value="Player 2" maxlength="16" /></label>
+      </div>
+    </div>
+    <div class="topRight">
+      <div class="allTimeCard" id="allTimeCard">
+        <div class="allTimeLabel">Online leaderboard</div>
+        <div class="leaderboardTabs">
+          <button class="leaderboardTab active" id="lbSingleBtn" type="button">1P Top 10</button>
+          <button class="leaderboardTab" id="lbMultiBtn" type="button">2P Top 10</button>
+        </div>
+        <div class="allTimeScore" id="allTimeScore">0</div>
+        <div class="allTimeName" id="allTimeName">No champion yet</div>
+        <div class="allTimeMeta" id="allTimeMeta">Loading online</div>
+        <ol class="leaderboardList" id="leaderboardList"><li>Loading...</li></ol>
+        <div class="leaderboardStatus" id="leaderboardStatus">Scores save to Vercel Blob.</div>
+      </div>
+      <div class="actions">
+        <button class="pill" id="soundBtn" title="Click to cycle mute. Long press to open hidden MP3 player.">🔊 Audio: All On</button>
+        <button class="pill" id="rulesBtn">Rules</button>
+        <button class="primary" id="newBtn">New Game</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="layout">
+    <section class="panel">
+      <div class="in">
+        <div class="playerRow" id="playerRow"></div>
+        <div class="stats">
+          <div class="stat"><div class="lab">Current player</div><div class="val" id="currentPlayer">P1</div></div>
+          <div class="stat"><div class="lab">Score</div><div class="val" id="total">0</div></div>
+          <div class="stat"><div class="lab">Cash</div><div class="val gold" id="cash">$0</div></div>
+          <div class="stat"><div class="lab">Round</div><div class="val" id="round">1/13</div></div>
+          <div class="stat"><div class="lab">Rolls</div><div class="val" id="rolls">3</div></div>
+        </div>
+
+        <div class="meterWrap">
+          <div class="meterTop"><strong>Upper bonus charge</strong><span id="bonusText">0 / 180 → +75</span></div>
+          <div class="meter"><div class="fill" id="bonusFill"></div></div>
+        </div>
+
+        <div class="targetCard" id="targetCard">
+          <div>
+            <div class="targetTitle">Current target</div>
+            <div class="targetName" id="targetName">Ones</div>
+            <div class="targetDesc" id="targetDesc">Add all 1s.</div>
+          </div>
+          <div class="targetControls" id="targetControls" style="display:none">
+            <div class="targetBadge" id="targetBadge">Pick mode</div>
+            <select id="targetSelect" style="margin-top:10px; width:100%; min-width:220px"></select>
+          </div>
+        </div>
+
+        <div class="diceStage">
+          <div class="diceRail" id="diceRail">
+            <button class="die lock" data-i="0" data-v="1"></button>
+            <button class="die lock" data-i="1" data-v="1"></button>
+            <button class="die lock" data-i="2" data-v="1"></button>
+            <button class="die lock" data-i="3" data-v="1"></button>
+            <button class="die lock" data-i="4" data-v="1"></button>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="roll" id="rollBtn">Roll dice ✨</button>
+          <button class="ghost" id="unholdBtn">Unhold</button>
+        </div>
+
+        <div class="hint" id="hint">All five dice stay visible now. In pick mode you choose the target. In forced mode the target marches from Ones to Chance.</div>
+
+        <div class="heatCard" id="heatCard">
+          <div class="heatSparks"></div>
+          <div class="heatTop">
+            <div>
+              <div class="heatLabel">Target heat</div>
+              <div class="heatCopy" id="heatTargetName" style="margin-top:3px">Roll dice to build heat.</div>
+            </div>
+            <div class="heatValue" id="heatValue">1x</div>
+          </div>
+          <div class="heatTrack">
+            <div class="heatFill" id="heatFill"></div>
+            <div class="heatFlame" id="heatFlame">🔥</div>
+          </div>
+          <div class="heatScale"><span>1x</span><span>2x</span><span>3x</span><span>4x</span><span>5x</span></div>
+          <div class="heatCopy" id="heatCopy">1x means no flame. Hit the target harder to ignite the multiplier.</div>
+        </div>
+
+        <div class="rollShopCard" id="rollShopCard">
+          <div class="rollShopHead">
+            <div>
+              <div class="rollShopTitle">Dice roll shop</div>
+              <div class="rollShopSub" id="rollShopMeta">Expensive mid-run powers. Buy when your engine is printing money.</div>
+            </div>
+            <div class="rollShopCost" id="rollShopCash">$0</div>
+          </div>
+          <div class="rollShopGrid">
+            <button class="rollShopBtn" id="rollShopRerollDieBtn"><div class="rollShopIcon">🎲</div><div><div class="rollShopName">Reroll one die <span class="rollShopCost">$500</span></div><div class="rollShopText">Rerolls one unheld die once. Prioritizes dice not helping the target.</div></div></button>
+            <button class="rollShopBtn" id="rollShopCashScoreBtn"><div class="rollShopIcon">💸</div><div><div class="rollShopName">Cash-to-score engine <span class="rollShopCost">$500</span></div><div class="rollShopText">Permanent: +10% of cash balance to score for each buy.</div></div></button>
+            <button class="rollShopBtn" id="rollShopExtraRollBtn"><div class="rollShopIcon">➕</div><div><div class="rollShopName">Extra roll <span class="rollShopCost">$1000</span></div><div class="rollShopText">Adds one more roll for all dice that are not held.</div></div></button>
+            <button class="rollShopBtn" id="upgradeDiceBtn"><div class="rollShopIcon">✨</div><div><div class="rollShopName">Upgrade selected dice <span class="rollShopCost">$666</span></div><div class="rollShopText">Select a dice. Upgrade details appear here only when you can afford it.</div></div></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="in">
+        <div class="head"><h2>Score card</h2><button class="ghost" id="showWinnerBtn">Standings</button></div>
+        <div class="section"><span>Upper section</span><span>Target score previews</span></div>
+        <div class="scoreGrid" id="upperGrid"></div>
+        <div class="section"><span>Lower section</span><span>Shop effects included</span></div>
+        <div class="scoreGrid" id="lowerGrid"></div>
+        <div class="footerScores">
+          <div class="scoreBox"><span>Upper</span><strong id="upperScore">0</strong></div>
+          <div class="scoreBox"><span>Bonus</span><strong id="bonusScore">0</strong></div>
+          <div class="scoreBox"><span>High score</span><strong id="highScore">0</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel shopPanel">
+      <div class="in">
+        <div class="head"><h2>Dice Shop</h2><div class="val gold" id="shopCash" style="font-size:24px">$0</div></div>
+        <div class="moment">
+          <div class="momentIcon" id="momentIcon">🎯</div>
+          <div>
+            <div class="momentTitle" id="momentTitle">Choose your target</div>
+            <div class="momentCopy" id="momentCopy">Matching dice glow green so you can see what helps your current target.</div>
+          </div>
+        </div>
+        <div class="section"><span>Your dice</span><span id="invCount">0 / 6</span></div>
+        <div class="inventory" id="inventory"></div>
+        <div class="section"><span>Current stock</span><span id="poolMeta">All dice unlocked • power tiers audited</span></div>
+        <div class="shopGrid" id="stock"></div>
+        <div class="shopBtns">
+          <button class="pill" id="rerollShopBtn">Reroll shop $5</button>
+          <button class="pill" id="sellLastBtn">Sell selected dice</button>
+        </div>
+        <button class="pill explainerBtn" id="diceGuideBtn">📖 Dice explainer</button>
+        <div class="log" id="shopLog"><b>Shop log:</b><br>Start with $40. All dice are in the loot pool; rarer dice appear more often later.</div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<audio id="musicPlayer" preload="metadata"></audio>
+<div class="toastStack" id="toastStack"></div>
+<div class="turnBanner" id="turnBanner"><div class="turnBannerCard"><div class="turnKicker">Next turn</div><div class="turnName" id="turnBannerName">Player 1</div><div class="turnSub" id="turnBannerSub">Roll the dice</div></div></div>
+<div class="yahtzeeStorm" id="yahtzeeStorm"><div class="yahtzeeStormCard"><div class="yahtzeeKick">ULTRA HIT</div><div class="yahtzeeBig">YAHTZEE!</div><div class="yahtzeeSub">Overkill. Excessive. Correct.</div><div class="yahtzeeBolt" style="left:14%;animation-delay:.02s"></div><div class="yahtzeeBolt" style="left:31%;animation-delay:.17s"></div><div class="yahtzeeBolt" style="left:50%;animation-delay:.09s"></div><div class="yahtzeeBolt" style="left:69%;animation-delay:.23s"></div><div class="yahtzeeBolt" style="left:86%;animation-delay:.13s"></div></div></div>
+<div class="modalBg" id="rulesModal"><div class="modal" style="text-align:left"><h2 style="font-size:40px">Rules</h2><p>Roll up to three times. Tap dice to hold them. After the third roll, the roll button becomes <b>Bank score</b>. Score once per turn. In <b>Pick your target</b> mode you roll first, then click any unused scorecard row to bank there. In <b>Forced</b> mode (the default) the target automatically follows the scorecard order: Ones, Twos, Threes, and so on. If you roll a Yahtzee and the Yahtzee row is still open, forced mode will slam it into the Yahtzee slot automatically.</p><p>In forced mode, matching dice glow green for your current target. In pick mode, hover a score row to preview its target highlights. Each player has their own scorecard, cash, shop stock, and owned dice. Successful turns pay cash so you can buy more chaotic passive dice. Hitting your active target now multiplies only when the actual target is valid: four Ones scores 4 × 4 = 16, a real Full House is 3+2 only, and two pairs never ignite Full House heat. Chance has no target multiplier. The roll shop under the heat meter can reroll one die, buy cash-to-score ranks, buy extra rolls, or upgrade owned dice; upgraded WOG becomes WOW. The upper bonus now needs 180 points and pays +75. Shop rerolls start at $5 each turn and get more expensive until the next turn. All dice are now in the starting loot pool. As the game gets deeper, rare and legendary dice become more likely to appear in the shop.</p><div class="modalActions"><button class="primary" id="closeRulesBtn">Got it</button></div></div></div>
+<div class="modalBg" id="endModal"><div class="modal"><h2 id="endTitle">Game over!</h2><div class="final" id="finalScore">0</div><p id="finalCopy">One more run?</p><div class="modalActions"><button class="primary" id="playAgainBtn">Play again</button><button class="pill" id="closeEndBtn">Close</button></div></div></div>
+<div class="modalBg" id="diceGuideModal"><div class="modal" style="text-align:left;width:min(940px,100%)"><h2 style="font-size:40px">Dice explainer</h2><div class="guideIntro" id="diceGuideMeta">Every dice is in the starting loot pool. Rare and legendary dice become more likely as the round number increases.</div><div class="guideGrid" id="diceGuideList"></div><div class="modalActions"><button class="primary" id="closeDiceGuideBtn">Close</button></div></div></div>
+<div class="modalBg" id="musicModal"><div class="modal musicPanel"><h2 style="font-size:40px">Hidden MP3 player</h2><p>Music auto-loads from the <b>mp3</b> folder when the browser can find it. You can also choose local MP3 files manually.</p><div class="musicCard" id="musicCard"><div class="musicHead"><span>MP3 Player</span><span class="musicBadge" id="musicState">Searching</span></div><div class="musicTrack" id="musicTrack">Looking for /mp3 music...</div><div class="musicHint" id="musicHint">Long press the audio button to open this panel.</div></div><input id="musicFileInput" type="file" accept="audio/mpeg,audio/mp3,.mp3" multiple hidden><div class="musicActions"><button class="primary" id="openMusicFileBtn">📁 Choose MP3 file</button><button class="pill" id="musicPlayPauseBtn">▶️ Play / pause</button><button class="pill" id="musicPrevBtn">⏮️ Previous</button><button class="pill" id="musicNextBtn">⏭️ Next</button></div><div class="modalActions"><button class="pill" id="closeMusicModalBtn">Close</button></div></div></div>
+
+<script>
+const categories = [
+  { id:'ones', name:'Ones', desc:'Add all 1s.', section:'upper', face:1 },
+  { id:'twos', name:'Twos', desc:'Add all 2s.', section:'upper', face:2 },
+  { id:'threes', name:'Threes', desc:'Add all 3s.', section:'upper', face:3 },
+  { id:'fours', name:'Fours', desc:'Add all 4s.', section:'upper', face:4 },
+  { id:'fives', name:'Fives', desc:'Add all 5s.', section:'upper', face:5 },
+  { id:'sixes', name:'Sixes', desc:'Add all 6s.', section:'upper', face:6 },
+  { id:'threeKind', name:'Three of a kind', desc:'3 same → sum all dice.', section:'lower' },
+  { id:'fourKind', name:'Four of a kind', desc:'4 same → sum all dice.', section:'lower' },
+  { id:'fullHouse', name:'Full House', desc:'3 + 2 → 25.', section:'lower' },
+  { id:'smallStraight', name:'Small Straight', desc:'4 in a row → 30.', section:'lower' },
+  { id:'largeStraight', name:'Large Straight', desc:'5 in a row → 40.', section:'lower' },
+  { id:'yahtzee', name:'Yahtzee', desc:'5 same → 50.', section:'lower' },
+  { id:'chance', name:'Chance', desc:'Score all dice.', section:'lower' }
+];
+
+const UPPER_BONUS_THRESHOLD = 180;
+const UPPER_BONUS_POINTS = 75;
+
+const shopItems = [
+  {id:'mirror', emoji:'🪞', name:'Mirror Cube', rarity:'uncommon', price:17, desc:'Copies your lowest die into your highest die before scoring. Handy, but not a monster.'},
+  {id:'vampire', emoji:'🧛', name:'Vampire Pips', rarity:'rare', price:25, desc:'In lower categories, all 1s become 6s before scoring. Strong combo fixer.'},
+  {id:'boom', emoji:'💣', name:'Boom Sixes', rarity:'common', price:12, desc:'+6 score for every 6 showing. Simple, cheap, useful.'},
+  {id:'snake', emoji:'🐍', name:'Snake Eyes CEO', rarity:'uncommon', price:15, desc:'In Ones, each 1 scores as 6. Strong once, not always.'},
+  {id:'cat', emoji:'🐱', name:'Lucky Cat Dice', rarity:'legend', price:45, desc:'35% chance to double the final banked score. Absolute nonsense when it pops.'},
+  {id:'printer', emoji:'🖨️', name:'Money Printer', rarity:'common', price:14, desc:'Successful turns pay +$14. Economy help, no score power.'},
+  {id:'tax', emoji:'🧾', name:'Tax Goblin', rarity:'common', price:12, desc:'If the final banked score is 0, gain $30 instead. A cash safety net.'},
+  {id:'coupon', emoji:'🎟️', name:'Coupon Cube', rarity:'rare', price:28, desc:'All shop prices are halved while owned. Very strong economy scaling.'},
+  {id:'space', emoji:'🚀', name:'Straight to Space', rarity:'legend', price:48, desc:'Large Straight gets +100 score before target multipliers. Extremely powerful.'},
+  {id:'mouse', emoji:'🏠', name:'House Mouse', rarity:'legend', price:42, desc:'Full House gets +50 score and +$18. Huge when the x5 target bonus hits.'},
+  {id:'slot', emoji:'🎰', name:'Slot Machine Die', rarity:'common', price:13, desc:'Any 3+ of a kind gives +$25. Money only, easy to understand.'},
+  {id:'neon', emoji:'🌈', name:'Neon Die', rarity:'rare', price:22, desc:'If dice total is 20+, add +20 score. Frequent and multiplier-friendly.'},
+  {id:'royal', emoji:'👑', name:'Royal Yahtzee', rarity:'legend', price:45, desc:'Yahtzee scores 150 instead of 50. Crown-level payoff.'},
+  {id:'chaos', emoji:'🌀', name:'Chaos Cube', rarity:'rare', price:24, desc:'Final score gets +0 to +36. Preview assumes +18. Random but strong.'},
+  {id:'magnet', emoji:'🧲', name:'Straight Magnet', rarity:'uncommon', price:17, desc:'Small Straight only needs 3 connected numbers. Useful, but not a giant bonus.'},
+  {id:'duck', emoji:'🦆', name:'Duck Dividend', rarity:'common', price:12, desc:'Every 2 showing adds +4 score and +$2. Cute early value.'},
+  {id:'soup', emoji:'🍲', name:'Sad Soup Dice', rarity:'uncommon', price:16, desc:'Low dice totals become useful: total 12 or less adds +22; total 8 or less adds +35.'},
+  {id:'bacon', emoji:'🥓', name:'Bacon 4:20', rarity:'rare', price:28, desc:'If your dice contain both a 4 and a 2, add +42 score. Big combo fuel.'},
+  {id:'dentist', emoji:'🦷', name:'The Dentist', rarity:'uncommon', price:18, desc:'Every pair in the roll adds +9 score. Consistent but not insane.'},
+  {id:'banana', emoji:'🍌', name:'Banana Peel', rarity:'uncommon', price:18, desc:'If a non-Chance category would score 0, slip into +25 instead.'},
+  {id:'coffee', emoji:'☕', name:'Espresso Die', rarity:'rare', price:26, desc:'Bank after only one roll to gain +30 score. Risky but strong.'},
+  {id:'goblin', emoji:'👺', name:'Greed Goblin', rarity:'uncommon', price:18, desc:'If dice total is exactly 13, add +33 score and +$33. Big, but narrow.'},
+  {id:'clown', emoji:'🤡', name:'Clown Car Dice', rarity:'legend', price:40, desc:'Four of a kind gets +40 score before its x4 target bonus. Honk honk.'},
+  {id:'accountant', emoji:'🧮', name:'Accountant Cube', rarity:'uncommon', price:18, desc:'Chance gets +5 score for each dice you own. Scales, but Chance has no target multiplier.'},
+  {id:'dragon', emoji:'🐉', name:'Dragon Hoard', rarity:'legend', price:46, desc:'Any score of 60+ gets +30 score and +$40 extra. Snowball monster.'},
+  {id:'sock', emoji:'🧦', name:'Wet Sock', rarity:'common', price:10, desc:'If the final score is odd, add +9. Small and unpleasant.'},
+  {id:'cheese', emoji:'🧀', name:'Cheese Tax', rarity:'common', price:12, desc:'Every 5 showing adds +5 score and +$5. Fine little snack.'},
+  {id:'wizard', emoji:'🧙', name:'Tiny Wizard', rarity:'rare', price:25, desc:'Exactly 3 different dice faces adds +33 score. Strong and fairly chaseable.'},
+  {id:'panic', emoji:'🚨', name:'Panic Button', rarity:'rare', price:25, desc:'On your last roll, weak scores under 15 get +35. Can save disasters hard.'},
+  {id:'troll', emoji:'🧌', name:'Trønder Troll', rarity:'legend', price:44, desc:'If all dice are odd or all dice are even, add +66 score. Rare but huge.'},
+  {id:'pizza', emoji:'🍕', name:'Pizza Math', rarity:'uncommon', price:17, desc:'Dice total exactly 25 adds +25 score. Specific but satisfying.'},
+  {id:'raccoon', emoji:'🦝', name:'Trash Panda', rarity:'rare', price:25, desc:'Every 1 adds +11 score. Garbage becomes dangerous with multipliers.'},
+  {id:'forklift', emoji:'🚜', name:'Forklift Certified', rarity:'uncommon', price:18, desc:'Two or more 6s adds +24 score. Solid six synergy.'},
+  {id:'microwave', emoji:'📟', name:'Angry Microwave', rarity:'uncommon', price:17, desc:'Even dice total adds +16 score. Happens often, so it costs more.'},
+  {id:'glue', emoji:'🧴', name:'Glue Goblin', rarity:'rare', price:24, desc:'Each held die adds +7 score when you bank. Controllable combo piece.'},
+  {id:'wog', emoji:'🪦', name:'WOG', rarity:'cursed', price:2, desc:'Cursed bad dice. It steals points when you bank until you upgrade it into WOW.'},
+  {id:'moon', emoji:'🌙', name:'Tiny Moon', rarity:'rare', price:25, desc:'If all dice are 1-3, add +44 score. Rare tiny-roll jackpot.'},
+  {id:'alien', emoji:'👽', name:'Suspicious Alien', rarity:'rare', price:30, desc:'Five different faces adds +55 score. Strong spread-roll payoff.'},
+  {id:'grandma', emoji:'👵', name:'Grandma’s Purse', rarity:'uncommon', price:18, desc:'Upper-section banks get +20 before heat. Top-bracket specialist.'},
+  {id:'lawsuit', emoji:'⚖️', name:'Lawsuit Dice', rarity:'uncommon', price:18, desc:'Every 1 adds +9 score. Useful legal nonsense.'},
+  {id:'viking', emoji:'🪓', name:'Viking Audit', rarity:'rare', price:30, desc:'Three or more odd dice adds +30 score. Strong and frequent enough to respect.'},
+  {id:'jackpot', emoji:'💰', name:'One Pair Jackpot', rarity:'legend', price:56, desc:'Exactly one pair, no triples, adds +77 score. Shockingly powerful.'},
+  {id:'couch', emoji:'🛋️', name:'Last Roll Couch', rarity:'uncommon', price:18, desc:'Banking after all 3 rolls adds +18 score. Reliable but modest.'},
+  {id:'treasure', emoji:'🪙', name:'Participation Trophy', rarity:'rare', price:24, desc:'If the score is still 0, add +40 score. Premium rescue dice.'},
+  {id:'opera', emoji:'🎭', name:'Opera Straightener', rarity:'rare', price:28, desc:'Any straight progress of 4+ adds +35 score. Strong straight support.'},
+  {id:'otter', emoji:'🦦', name:'Otter Auditor', rarity:'common', price:12, desc:'Every 3 showing adds +3 score and +$2. The otter has checked the books.'},
+  {id:'minty', emoji:'🪥', name:'Minty Pip', rarity:'common', price:12, desc:'Every 4 showing adds +4 score and +$2. Freshens up awkward rolls.'},
+  {id:'doskal', emoji:'🚽', name:'Doskål', rarity:'common', price:11, desc:'Banking a positive score ending in 0 adds +10. A clean little flush bonus.'},
+  {id:'pretzel', emoji:'🥨', name:'Pretzel Knot', rarity:'common', price:13, desc:'Exactly 4 different faces adds +12 score. Twisty, cheap, and frequent.'},
+  {id:'polse', emoji:'🌭', name:'Pølse Power', rarity:'uncommon', price:17, desc:'Dice total exactly 18 adds +28 score. Classic kiosk math.'},
+  {id:'stink', emoji:'🦨', name:'Stink Bomb', rarity:'uncommon', price:16, desc:'Three or more even dice adds +16 score. Pairs nicely with even-total builds.'},
+  {id:'mousetrap', emoji:'🪤', name:'Mousetrap Bounty', rarity:'uncommon', price:16, desc:'Your first successful Three of a Kind banked this game pays +$30.'},
+  {id:'brainfreeze', emoji:'🧊', name:'Brain Freeze', rarity:'uncommon', price:16, desc:'After your second roll, hold all 5 dice before the final throw to arm +20 score. No last-second freeze.'},
+  {id:'hedgehog', emoji:'🦔', name:'Hedgehog Hoard', rarity:'uncommon', price:18, desc:'Adds +1 score for every $5 you currently have, capped at +25.'},
+  {id:'sykkel', emoji:'🚲', name:'Sykkel Sprint', rarity:'uncommon', price:17, desc:'Any three consecutive numbers adds +18 score. Straight training wheels.'},
+  {id:'garlic', emoji:'🧄', name:'Garlic Knight', rarity:'rare', price:24, desc:'Banking a Yahtzee also pays +$50. Keeps the vampires jealous.'},
+  {id:'goose', emoji:'🪿', name:'Honking Goose', rarity:'rare', price:24, desc:'Any Small or Large Straight also pays +$25. HONK economy.'},
+  {id:'roller', emoji:'🛼', name:'Roller Disco', rarity:'rare', price:28, desc:'Three of a Kind adds the matching face × 8 as bonus score.'},
+  {id:'mutant', emoji:'🧬', name:'Mutant Pip', rarity:'rare', price:30, desc:'50% chance before scoring that one random die mutates into a 6.'},
+  {id:'lifebuoy', emoji:'🛟', name:'Lifebuoy', rarity:'rare', price:30, desc:'If the final bank would be under 20, set it to 45 instead.'},
+  {id:'sushi', emoji:'🍣', name:'Sushi Combo', rarity:'rare', price:26, desc:'Two distinct pairs in the roll adds +30 score. Delicious double-dip.'},
+  {id:'trolltunga', emoji:'🏔️', name:'Trolltunga Triumph', rarity:'legend', price:52, desc:'Five identical odd dice adds +130 score and +$50. A monster odd Yahtzee payoff.'},
+  {id:'lightning', emoji:'⚡', name:'Lightning Round', rarity:'legend', price:48, desc:'Banking after only the first roll adds +90 score. Fast hands, stupid points.'},
+  {id:'unicorn', emoji:'🦄', name:'Unicorn Sequence', rarity:'legend', price:50, desc:'Exactly 2-3-4-5-6 adds +130 score and +$30. High straight magic.'},
+  {id:'ufo', emoji:'🛸', name:'UFO Abduction', rarity:'legend', price:56, desc:'Before scoring, a random die becomes a 6, and the final score gets +40.'},
+  {id:'blackhole', emoji:'🕳️', name:'Black Hole 30', rarity:'legend', price:52, desc:'Five 6s / dice total 30 adds +300 score and +$100; totals 26-29 add +40. True deep-space jackpot.'}
+];
+const diceDocs = {
+  "mirror": { detail: "Changes one die before scoring, not visually before you bank. It copies the lowest die into the highest die, making pairs and totals better.", example: "Example: 1-2-3-4-6 becomes 6-2-3-4-6 for scoring. Chance gains +5, and Sixes gets another 6." },
+  "vampire": { detail: "Only works on lower-section categories. It turns all 1s into 6s before the category and bonus dice are calculated.", example: "Example: On Four of a Kind, 1-1-6-6-6 scores like 6-6-6-6-6 for lower scoring checks." },
+  "boom": { detail: "A simple score booster. Every 6 showing adds score on top of the category score, even if the base category was 0.", example: "Example: Target Twos with 6-6-3-4-5 gives 0 base, then Boom adds +12." },
+  "snake": { detail: "Only affects the Ones category. It makes each 1 score as 6 instead of 1.", example: "Example: In Ones, 1-1-1-4-6 scores 18 instead of 3." },
+  "cat": { detail: "A final multiplier. It happens after most score bonuses have been added, so it can double a huge combo.", example: "Example: A 42-point Bacon bonus can become 84 if Lucky Cat triggers." },
+  "printer": { detail: "Money-only dice. It rewards any successful banked score above 0.", example: "Example: Bank 7 points and you still get the normal reward plus +$14." },
+  "tax": { detail: "A safety net for terrible turns. It does not add score, but it pays you when the banked score stays 0.", example: "Example: Target Sixes with no 6s and no score bonuses gives 0 score, then Tax Goblin gives +$30." },
+  "coupon": { detail: "Shop economy dice. While owned, all shop prices are halved, including rerolls of new stock purchases.", example: "Example: A $24 rare dice costs $12 while Coupon Cube is owned." },
+  "space": { detail: "A huge Large Straight payoff. It only works when Large Straight already succeeds.", example: "Example: 2-3-4-5-6 in Large Straight scores 40 + 100 = 140." },
+  "mouse": { detail: "Turns Full House into a big category and also gives cash.", example: "Example: 3-3-3-5-5 scores 25 + 50 and pays an extra $18." },
+  "slot": { detail: "Money dice for duplicate-heavy rolls. It triggers if any face appears at least 3 times.", example: "Example: 4-4-4-2-6 gives +$25 even if your target is Fours, Three of a Kind, or Chance." },
+  "neon": { detail: "Rewards high total rolls. It adds score after the category calculation.", example: "Example: 6-6-5-4-3 totals 24, so Neon adds +20 to the banked score." },
+  "royal": { detail: "Replaces normal Yahtzee scoring with a massive value.", example: "Example: 5-5-5-5-5 in Yahtzee scores 150 instead of 50." },
+  "chaos": { detail: "Random score dice. The preview shows an average +18, but the real bank can be anywhere from +0 to +36.", example: "Example: A 12-point bank could become anything from 12 to 48." },
+  "magnet": { detail: "Makes Small Straight easier by accepting 3 connected numbers if the normal straight failed.", example: "Example: 2-3-4-6-6 can still score Small Straight for 30." },
+  "duck": { detail: "A better early-game economy/score dice. Twos become little dividends.", example: "Example: 2-2-2-5-6 adds +12 score and +$6 cash." },
+  "soup": { detail: "This is a low-roll rescue dice. It applies when the five dice total is small, even if the target category itself scored 0.", example: "Example: 1-1-2-3-4 totals 11. If target Fives scores 0, Sad Soup still makes it 22." },
+  "bacon": { detail: "A very readable combo dice. You only need at least one 4 and one 2 anywhere in the roll.", example: "Example: 2-4-6-6-1 adds +42 on top of the target score." },
+  "dentist": { detail: "Counts pairs inside your roll. Three of a kind has one pair inside it; four of a kind has two pairs.", example: "Example: 3-3-6-6-6 has one pair of 3s and one pair inside the 6s, so +18." },
+  "banana": { detail: "Zero-score rescue. It replaces a non-Chance 0 with 25 before later final effects.", example: "Example: Target Sixes with 1-2-3-4-5 would be 0, but Banana makes it 25." },
+  "coffee": { detail: "Rewards brave fast banking. It works when you bank after only your first roll.", example: "Example: Roll once, stop immediately, bank Chance for 18, Espresso adds +30 for 48." },
+  "goblin": { detail: "Now checks dice total instead of final score, making it much easier to understand and trigger.", example: "Example: 1-2-2-3-5 totals 13, so Greed Goblin adds +33 and +$33." },
+  "clown": { detail: "A category-specific booster for Four of a Kind.", example: "Example: 4-4-4-4-2 in Four of a Kind scores 18 + 40." },
+  "accountant": { detail: "Turns Chance into a scaling category based on your inventory size.", example: "Example: With 5 owned dice, Chance gets +25." },
+  "dragon": { detail: "A late-game snowball dice. If your score is already big, it becomes bigger and pays cash.", example: "Example: Bank 70 points, Dragon turns it into 100 and pays +$40." },
+  "sock": { detail: "An annoying little score fixer. It likes odd final scores.", example: "Example: A 15-point score becomes 24." },
+  "cheese": { detail: "Fives become both score and money.", example: "Example: 5-5-1-2-3 adds +10 score and +$10." },
+  "wizard": { detail: "Rewards mixed rolls with exactly 3 different face values.", example: "Example: 2-2-4-4-6 has exactly 3 faces, so +33." },
+  "panic": { detail: "A last-roll safety button. It only checks after all three rolls are used.", example: "Example: After the third roll, a weak 8-point bank becomes 43." },
+  "troll": { detail: "Big parity combo. It likes all odd or all even dice.", example: "Example: 1-3-3-5-5 or 2-2-4-6-6 adds +66." },
+  "pizza": { detail: "A precise total target. Total 25 is common enough to chase with high dice.", example: "Example: 6-6-5-4-4 totals 25, so Pizza adds +25." },
+  "raccoon": { detail: "Makes bad-looking 1s valuable.", example: "Example: 1-1-1-5-6 adds +33 score." },
+  "forklift": { detail: "Simple six synergy. Two or more 6s activate it.", example: "Example: 6-6-2-3-4 adds +24 score." },
+  "microwave": { detail: "Frequent small booster. Any even dice total activates it.", example: "Example: A total of 18 adds +16 score. Beep." },
+  "glue": { detail: "Rewards planning. Held dice at the moment you bank each add score.", example: "Example: If 4 dice are held when you bank, Glue adds +28." },
+  "wog": { detail: "Whack og Gay is the bad bargain dice. It is cheap because it actively steals points when it triggers, then throws a red warning box so you understand exactly how many points it cost you.", example: "Example: If WOG triggers for -12, the score screen shows: WOG stole 12 points. Upgrade it for $666 to turn it into WOW." },
+  "moon": { detail: "Rewards tiny, sad rolls with huge score.", example: "Example: 1-1-2-2-3 adds +44." },
+  "alien": { detail: "Rewards having five different faces.", example: "Example: 1-2-3-4-6 adds +55." },
+  "grandma": { detail: "Top-bracket specialist. It adds +20 to any upper-section bank before heat multiplier, making Ones through Sixes feel worth chasing.", example: "Example: In Fours, 4-4-1-2-6 has base 8 + 20, then Fours heat can multiply it." },
+  "lawsuit": { detail: "Similar to Trash Panda, but a smaller legal bonus per 1.", example: "Example: 1-1-4-5-6 adds +18." },
+  "viking": { detail: "Counts odd dice, not odd total.", example: "Example: 1-3-5-6-6 has three odd dice, so +30." },
+  "jackpot": { detail: "Wants exactly one pair and no triples.", example: "Example: 2-2-3-4-6 adds +77." },
+  "couch": { detail: "Rewards using all three rolls.", example: "Example: If the button says Bank score after the third roll, this adds +18." },
+  "treasure": { detail: "Makes a truly dead score become points.", example: "Example: Score is still 0 after all bonuses, Participation Trophy makes it 40." },
+  "opera": { detail: "Rewards straight progress even outside Small/Large Straight.", example: "Example: 1-2-3-4-6 adds +35." },
+  "otter": { detail: "Fills the 3s gap in the every-face bonus line. It gives both score and a little money for each 3 showing.", example: "Example: 3-3-5-6-1 adds +6 score and +$4 before normal cash rewards." },
+  "minty": { detail: "Fills the 4s gap. Every 4 showing gives score and small cash, so Fours rounds become more comfortable.", example: "Example: 4-4-4-2-6 adds +12 score and +$6." },
+  "doskal": { detail: "Checks the score you are about to bank before Doskål itself is added. If that positive score ends in 0, it adds +10.", example: "Example: A 30-point Small Straight becomes 40. A 0-point miss does not count as ending in 0." },
+  "pretzel": { detail: "Rewards a wide but not perfect spread. Exactly four different face values means one pair plus three singles.", example: "Example: 1-2-3-4-4 has exactly 4 different faces, so Pretzel Knot adds +12." },
+  "polse": { detail: "A precise total dice. It only cares about the five dice adding to exactly 18, regardless of category.", example: "Example: 6-5-4-2-1 totals 18, so Pølse Power adds +28." },
+  "stink": { detail: "Counts even dice, not even total. Any three dice showing 2, 4, or 6 will activate it.", example: "Example: 2-4-6-1-5 has three even dice, so Stink Bomb adds +16." },
+  "mousetrap": { detail: "One-time money spike. It pays only the first time this player successfully banks the Three of a Kind category.", example: "Example: Bank 4-4-4-2-1 into Three of a Kind and get an extra +$30. It will not pay again this game." },
+  "brainfreeze": { detail: "Rewards committing before your final throw, not after it. Brain Freeze arms only when all five dice are held while you still have exactly one roll left. If you simply hold everything after the third roll, it does not activate.", example: "Example: Roll once, roll again, then with 1 roll left hold all 5 dice and bank instead of taking the final throw. Brain Freeze adds +20." },
+  "hedgehog": { detail: "Turns hoarded cash into points. It checks your current cash before the bank reward is paid, and caps at +25.", example: "Example: With $80, Hedgehog Hoard adds +16. With $150, it caps at +25." },
+  "sykkel": { detail: "Straight support that only needs any three-number run. It does not need four in a row.", example: "Example: 2-3-4-6-6 activates Sykkel Sprint for +18." },
+  "garlic": { detail: "Money-only Yahtzee economy. It stacks cleanly with Royal Yahtzee and other score dice.", example: "Example: Bank 5-5-5-5-5 and Garlic Knight pays +$50." },
+  "goose": { detail: "Money-only straight economy. It works on both Small Straight and Large Straight patterns.", example: "Example: 1-2-3-4-6 pays +$25 because it has a Small Straight." },
+  "roller": { detail: "Finds a triple or better, then uses the matching face value. Higher triples pay more.", example: "Example: 6-6-6-2-3 adds 6 × 8 = +48. 3-3-3-5-6 adds +24." },
+  "mutant": { detail: "Before scoring, it has a 50% chance to mutate one random die into a 6. The preview assumes the good mutation so you can see the upside.", example: "Example: 1-2-3-4-5 might become 1-2-3-4-6 before scoring." },
+  "lifebuoy": { detail: "A final rescue tool. After bonuses and penalties, if the banked score is under 20, Lifebuoy lifts it to 45.", example: "Example: A failed category that would bank 12 becomes 45 instead." },
+  "sushi": { detail: "Looks for two different paired faces. It also works inside some full houses.", example: "Example: 2-2-5-5-6 adds +30. 3-3-3-6-6 also has two distinct pairs and adds +30." },
+  "trolltunga": { detail: "A legendary odd-Yahtzee payoff. It only works with five identical odd dice: all 1s, all 3s, or all 5s.", example: "Example: 5-5-5-5-5 adds +130 score and +$50." },
+  "lightning": { detail: "Rewards instant commitment. Roll once, then bank without rerolling to get the bonus.", example: "Example: After your first roll, click a score row immediately. Lightning Round adds +90." },
+  "unicorn": { detail: "A very specific high straight. It wants exactly 2, 3, 4, 5, and 6.", example: "Example: 2-3-4-5-6 adds +130 score and +$30 on top of Large Straight scoring." },
+  "ufo": { detail: "Always-on legendary chaos. A random die becomes a 6 before category scoring, then UFO adds a flat +40 score bonus.", example: "Example: 1-2-3-4-5 could become 1-2-3-4-6, then UFO adds +40." },
+  "blackhole": { detail: "Legendary jackpot dice. It is intentionally about the almost-mythical total of 30: five 6s. Because that is basically a hard six-Yahtzee, it now pays like one.", example: "Example: 6-6-6-6-6 totals 30, so Black Hole adds +300 score and +$100. Totals 26-29 still get +40 gravity points." }
+};
+
+
+const ROLL_SHOP_COSTS = { rerollDie: 500, cashScore: 500, extraRoll: 1000, upgradeDice: 666 };
+const diceUpgradeText = {
+  mirror:'Prism upgrade: when it copies a die, it also adds a high-face bonus before heat.', vampire:'Bloodmoon upgrade: lower-section 6s become bonus points and cash after the bite.', boom:'Mega bomb: sixes explode harder and become cash too.', snake:'Royal snake: Ones rounds become dangerous; extra 1s also help outside Ones.', cat:'Golden cat: better double chance and sometimes triples the final score.', printer:'Laser printer: positive banks also get score before heat and much more cash.', tax:'Tax refund: dead scores become points and pay more cash.', coupon:'Black-card coupon: shop prices become cheaper and roll-shop powers get discounted.', space:'Orbital upgrade: Large Straight and near-space straight rolls get a second rocket.', mouse:'Mansion mouse: real Full Houses become huge; two-pair misses still get a consolation bite but no heat.', slot:'Jackpot upgrade: triples pay score as well as money.', neon:'Neon overdrive: activates from lower totals and pays more.', royal:'Crown upgrade: Yahtzee gets absurd; four-of-kind in Yahtzee gets a consolation crown.', chaos:'Controlled chaos: random bonus is much bigger and never tiny.', magnet:'Mega magnet: any three-run adds points, and Small Straight becomes easier to rescue.', duck:'Golden duck: twos pay double score and more cash.', soup:'Gourmet soup: low totals up to 15 become useful.', bacon:'Crispy bacon: 4+2 combo hits harder, and either ingredient gives a snack bonus.', dentist:'Diamond dentist: every pair pays a lot more.', banana:'Steel banana: zero rescues become strong enough to matter.', coffee:'Triple espresso: fast banking pays much more.', goblin:'Greed king: totals near 13 also pay.', clown:'Circus upgrade: Four of a Kind becomes a monster and triples get a honk.', accountant:'Chief accountant: Chance scaling doubles and other categories get a small audit.', dragon:'Ancient dragon: wakes earlier, pays more score and cash.', sock:'Dry sock: odd-score fixer becomes real points.', cheese:'Aged cheese: fives pay double.', wizard:'Archwizard: mixed-face rolls get a stronger spell.', panic:'Panic nuke: weak scores get a much larger save.', troll:'Mountain troll: all-even/all-odd is huge, and four-of-a-kind parity still helps.', pizza:'Family pizza: totals near 25 count too.', raccoon:'Trash king: 1s become premium garbage.', forklift:'Heavy forklift: even one 6 helps; two 6s hit hard.', microwave:'Industrial microwave: even totals beep harder.', glue:'Super glue: held dice become high-value planning.', wog:'WOW: curse removed. Never steals points. Yahtzee gives +666, any roll with 1s gives +111 plus +22 per 1 and +$66, and all other rolls still give +66 and +$22.', moon:'Big moon: tiny-ish rolls up to 4 are now strong.', alien:'Alien council: four or five different faces pay hard.', grandma:'Grandma vault: upper-section scores get a much bigger pre-heat purse.', lawsuit:'Supreme court: every 1 pays serious damages.', viking:'Berserker audit: two or more odd dice can trigger.', jackpot:'Mega jackpot: any pair helps, exact one-pair explodes.', couch:'Recliner throne: final-roll banking is much better, but even earlier banks get comfort.', treasure:'Golden trophy: low scores get rescued before heat.', opera:'Opera finale: three-run progress can sing.', otter:'Senior otter: 3s pay real score and cash.', minty:'Mint factory: 4s pay real score and cash.', doskal:'Golden flush: scores divisible by 5 get cleaned up.', pretzel:'Mega pretzel: four or more different faces get a better knot.', polse:'Loaded pølse: totals around 18 count.', stink:'Toxic stink: two even dice can activate.', mousetrap:'Bear trap: first Three of a Kind pays score and more cash.', brainfreeze:'Deep freeze: holding four or more dice can arm value.', hedgehog:'Dragon hedgehog: cash hoards convert much harder.', sykkel:'Turbo sykkel: any three-run pays more; four-run pays a lot.', garlic:'Holy garlic: Yahtzee pays score and big money.', goose:'War goose: straights honk score and more cash.', roller:'Roller inferno: triples scale much harder.', mutant:'Stable mutant: more reliable six payoff.', lifebuoy:'Rescue boat: weak banks are lifted higher.', sushi:'Omakase combo: two-pair/full-house pair structures pay more.', trolltunga:'Legendary peak: odd Yahtzees become absurd; odd triples still matter.', lightning:'Thunder round: quick banks are explosive.', unicorn:'Rainbow unicorn: 2-3-4-5-6 becomes legendary, and large straights still sparkle.', ufo:'Mothership: sixes and abduction pay more.', blackhole:'Event horizon: 30 is apocalyptic; 26+ is still excellent.'
+};
+function isUpgraded(player,id){ return !!(player && player.upgrades && player.upgrades[id]); }
+function displayItemName(player,item){
+  if (!item) return 'Bonus Dice';
+  if (item.id === 'wog' && isUpgraded(player,'wog')) return 'WOW';
+  return isUpgraded(player,item.id) ? `${item.name} ★` : item.name;
+}
+function displayUpgradedEffect(item){
+  if (!item) return '';
+  if (item.id === 'wog') return 'WOW current effect: the curse is gone. It never steals points. Yahtzee gives +666 score. Any roll with 1s gives +111 score plus +22 per 1 and +$66. Any other roll still gives +66 score and +$22, so WOW is always good.';
+  const hint = diceUpgradeText[item.id] || 'Stronger smart payoff when this dice is relevant.';
+  return hint
+    .replace(/upgrade:?/ig, 'current effect:')
+    .replace(/Upgraded:/ig, 'Current effect:')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function displayItemDesc(player,item){
+  if (!item) return '';
+  return isUpgraded(player,item.id) ? displayUpgradedEffect(item) : item.desc;
+}
+function displayUpgradeHint(item){
+  if (!item) return '';
+  return diceUpgradeText[item.id] || 'Upgraded: stronger smart payoff when this dice is relevant.';
+}
+function diceGuideName(item, player){
+  if (!item) return 'Bonus Dice';
+  if (item.id === 'wog' && player && isUpgraded(player,'wog')) return 'WOW';
+  return item.id === 'wog' ? 'Whack og Gay (WOG)' : item.name;
+}
+function diceSlotStatus(player,item, activeBonus, selected){
+  if (!item) return '';
+  if (isUpgraded(player,item.id)) return item.id === 'wog' ? 'WOW effect active' : 'Current effect active';
+  return activeBonus ? 'ACTIVE BONUS' : selected ? 'Selected' : 'Click/hover';
+}
+function rollShopCost(player, key){
+  const base = ROLL_SHOP_COSTS[key] || 0;
+  const discount = has(player,'coupon') ? (isUpgraded(player,'coupon') ? .75 : .9) : 1;
+  return Math.max(1, Math.ceil(base * discount));
+}
+function smartUpgradePayload(id, ctx){
+  const {player, catId, cat, dice, c, values, total, categoryScore, currentRawScore} = ctx;
+  const distinct = new Set(dice).size;
+  const pairs = Object.values(c).filter(n => n >= 2).length;
+  const pairUnits = Object.values(c).reduce((acc,n)=>acc + Math.floor(n/2),0);
+  const evenCount = dice.filter(n=>n%2===0).length;
+  const oddCount = dice.length - evenCount;
+  const tripleFace = Math.max(0, ...Object.entries(c).filter(([,n]) => n >= 3).map(([face]) => Number(face)));
+  switch(id){
+    case 'mirror': return distinct > 1 ? {score: Math.max(...dice)*8 + Math.min(...dice)*4, note:'Mirror Prism upgrade'} : null;
+    case 'vampire': return cat.section === 'lower' && (c[6]||0) ? {score:(c[6]||0)*12, money:(c[6]||0)*4, note:'Bloodmoon Vampire upgrade'} : null;
+    case 'boom': return (c[6]||0) ? {score:(c[6]||0)*10, money:(c[6]||0)*3, note:'Mega Boom upgrade'} : null;
+    case 'snake': return (c[1]||0) ? {score:(catId === 'ones' ? (c[1]||0)*14 : (c[1]||0)*7), note:'Royal Snake upgrade'} : null;
+    case 'printer': return currentRawScore() > 0 ? {score:25, note:'Laser Printer upgrade +25 before heat'} : null;
+    case 'tax': return currentRawScore() === 0 ? {score:35, money:35, note:'Tax Refund upgrade rescued zero'} : null;
+    case 'coupon': return {score:Math.ceil(total/2), note:'Black-card Coupon upgrade'};
+    case 'space': return (catId === 'largeStraight' || hasStraight(5,dice)) ? {score:80, note:'Orbital Space upgrade'} : null;
+    case 'mouse': return catId === 'fullHouse' ? (categoryScore > 0 ? {score:75,money:50,note:'Mansion Mouse upgrade'} : (pairs >= 2 ? {score:35,note:'Mouse two-pair consolation — no heat'} : null)) : null;
+    case 'slot': return values.some(v=>v>=3) ? {score:45, note:'Jackpot Slot upgrade'} : null;
+    case 'neon': return total >= 16 ? {score:35, note:'Neon Overdrive upgrade'} : null;
+    case 'royal': return catId === 'yahtzee' ? (isYahtzee(dice) ? {score:100,note:'Crown upgrade'} : (values.some(v=>v>=4) ? {score:50,note:'Consolation Crown upgrade'} : null)) : null;
+    case 'chaos': return {score: ctx.preview ? 46 : 20 + Math.floor(Math.random()*53), note:'Controlled Chaos upgrade'};
+    case 'magnet': return hasAnyThreeConsecutive(dice) ? {score:25, note:'Mega Magnet upgrade'} : null;
+    case 'duck': return (c[2]||0) ? {score:(c[2]||0)*8,money:(c[2]||0)*3,note:'Golden Duck upgrade'} : null;
+    case 'soup': return total <= 15 ? {score: total <= 8 ? 50 : 30, note:'Gourmet Soup upgrade'} : null;
+    case 'bacon': return dice.includes(4) && dice.includes(2) ? {score:40,note:'Crispy Bacon upgrade'} : (dice.includes(4)||dice.includes(2) ? {score:15,note:'Bacon snack upgrade'} : null);
+    case 'dentist': return pairUnits ? {score:pairUnits*14,note:'Diamond Dentist upgrade'} : null;
+    case 'banana': return currentRawScore() === 0 && catId !== 'chance' ? {score:45,note:'Steel Banana upgrade'} : null;
+    case 'coffee': return state.rollsLeft >= 1 ? {score:40,note:'Triple Espresso upgrade'} : null;
+    case 'goblin': return total >= 12 && total <= 14 ? {score:40,money:20,note:'Greed King upgrade'} : null;
+    case 'clown': return values.some(v=>v>=4) ? {score:90,note:'Circus Clown upgrade'} : (tripleFace ? {score:30,note:'Clown triple honk upgrade'} : null);
+    case 'accountant': return catId === 'chance' ? {score:player.inv.length*10,note:'Chief Accountant upgrade'} : {score:player.inv.length*3,note:'Small audit upgrade'};
+    case 'dragon': return currentRawScore() >= 40 ? {score:70,money:60,note:'Ancient Dragon upgrade'} : null;
+    case 'sock': return currentRawScore() > 0 ? {score: currentRawScore()%2===1 ? 25 : 12, note:'Dry Sock upgrade'} : null;
+    case 'cheese': return (c[5]||0) ? {score:(c[5]||0)*10,money:(c[5]||0)*5,note:'Aged Cheese upgrade'} : null;
+    case 'wizard': return distinct >= 2 && distinct <= 4 ? {score:36,note:'Archwizard upgrade'} : null;
+    case 'panic': return currentRawScore() < 25 ? {score:50,note:'Panic Nuke upgrade'} : null;
+    case 'troll': return (evenCount===5 || oddCount===5) ? {score:88,note:'Mountain Troll upgrade'} : (evenCount>=4 || oddCount>=4 ? {score:34,note:'Troll near-parity upgrade'} : null);
+    case 'pizza': return total >= 23 && total <= 26 ? {score:35,note:'Family Pizza upgrade'} : null;
+    case 'raccoon': return (c[1]||0) ? {score:(c[1]||0)*18,note:'Trash King upgrade'} : null;
+    case 'forklift': return (c[6]||0) ? {score:30 + Math.max(0,(c[6]||0)-1)*18,note:'Heavy Forklift upgrade'} : null;
+    case 'microwave': return {score: total%2===0 ? 30 : 12, note:'Industrial Microwave upgrade'};
+    case 'glue': return state.held.some(Boolean) ? {score:state.held.filter(Boolean).length*12,note:'Super Glue upgrade'} : null;
+    case 'moon': return dice.every(n=>n<=4) ? {score:50,note:'Big Moon upgrade'} : null;
+    case 'alien': return distinct >= 4 ? {score:60,note:'Alien Council upgrade'} : null;
+    case 'grandma': return cat.section === 'upper' ? {score:40,note:'Grandma Vault upgrade'} : null;
+    case 'lawsuit': return (c[1]||0) ? {score:(c[1]||0)*15,note:'Supreme Lawsuit upgrade'} : null;
+    case 'viking': return oddCount >= 2 ? {score:42,note:'Berserker Viking upgrade'} : null;
+    case 'jackpot': return Object.values(c).filter(n=>n===2).length === 1 && !Object.values(c).some(n=>n>2) ? {score:90,note:'Mega Jackpot upgrade'} : (pairs ? {score:35,note:'Pair Jackpot upgrade'} : null);
+    case 'couch': return {score: state.rollsLeft===0 ? 45 : 15, note:'Recliner Couch upgrade'};
+    case 'treasure': return currentRawScore() < 20 ? {score:50,note:'Golden Trophy upgrade'} : null;
+    case 'opera': return hasAnyThreeConsecutive(dice) ? {score:45,note:'Opera Finale upgrade'} : null;
+    case 'otter': return (c[3]||0) ? {score:(c[3]||0)*9,money:(c[3]||0)*3,note:'Senior Otter upgrade'} : null;
+    case 'minty': return (c[4]||0) ? {score:(c[4]||0)*10,money:(c[4]||0)*3,note:'Mint Factory upgrade'} : null;
+    case 'doskal': return currentRawScore() > 0 && currentRawScore()%5===0 ? {score:25,note:'Golden Flush upgrade'} : null;
+    case 'pretzel': return distinct >= 4 ? {score:30,note:'Mega Pretzel upgrade'} : null;
+    case 'polse': return total >= 16 && total <= 20 ? {score:38,note:'Loaded Pølse upgrade'} : null;
+    case 'stink': return evenCount >= 2 ? {score:35,note:'Toxic Stink upgrade'} : null;
+    case 'mousetrap': return catId === 'threeKind' && !player.mousetrapUsed && values.some(v=>v>=3) ? {score:40,money:60,note:'Bear Trap upgrade'} : null;
+    case 'brainfreeze': return state.held.filter(Boolean).length >= 4 ? {score:45,note:'Deep Freeze upgrade'} : null;
+    case 'hedgehog': return player.cash > 0 ? {score:Math.min(80, Math.floor(player.cash/4)), note:'Dragon Hedgehog upgrade'} : null;
+    case 'sykkel': return hasStraight(4,dice) ? {score:55,note:'Turbo Sykkel four-run upgrade'} : (hasAnyThreeConsecutive(dice) ? {score:35,note:'Turbo Sykkel upgrade'} : null);
+    case 'garlic': return isYahtzee(dice) ? {score:50,money:100,note:'Holy Garlic upgrade'} : null;
+    case 'goose': return hasStraight(4,dice) || hasStraight(5,dice) ? {score:35,money:60,note:'War Goose upgrade'} : null;
+    case 'roller': return tripleFace ? {score:tripleFace*14,note:'Roller Inferno upgrade'} : null;
+    case 'mutant': return (c[6]||0) ? {score:45,note:'Stable Mutant upgrade'} : null;
+    case 'lifebuoy': return currentRawScore() < 40 ? {score:20,note:'Rescue Boat upgrade'} : null;
+    case 'sushi': return pairs >= 2 ? {score:55,note:'Omakase Sushi upgrade'} : null;
+    case 'trolltunga': return isYahtzee(dice) && dice[0]%2===1 ? {score:200,money:100,note:'Legendary Trolltunga upgrade'} : (tripleFace && tripleFace%2===1 ? {score:50,note:'Odd peak upgrade'} : null);
+    case 'lightning': return state.rollsLeft === 2 ? {score:120,note:'Thunder Round upgrade'} : (state.rollsLeft >= 1 ? {score:45,note:'Lightning bank upgrade'} : null);
+    case 'unicorn': return hasExactlySequence([2,3,4,5,6],dice) ? {score:200,money:60,note:'Rainbow Unicorn upgrade'} : (hasStraight(5,dice) ? {score:60,note:'Unicorn sparkle upgrade'} : null);
+    case 'ufo': return (c[6]||0) ? {score:75,note:'Mothership upgrade'} : null;
+    case 'blackhole': return total === 30 ? {score:500,money:200,note:'EVENT HORIZON upgrade +500 +$200'} : (total >= 26 ? {score:100,note:'Deep Gravity upgrade'} : null);
+    default: return null;
+  }
+}
+
+const els = {
+  playerCount: document.getElementById('playerCount'),
+  targetMode: document.getElementById('targetMode'),
+  name1: document.getElementById('name1'),
+  name2: document.getElementById('name2'),
+  soundBtn: document.getElementById('soundBtn'),
+  musicPlayer: document.getElementById('musicPlayer'),
+  musicCard: document.getElementById('musicCard'),
+  musicState: document.getElementById('musicState'),
+  musicTrack: document.getElementById('musicTrack'),
+  musicHint: document.getElementById('musicHint'),
+  musicModal: document.getElementById('musicModal'),
+  closeMusicModalBtn: document.getElementById('closeMusicModalBtn'),
+  openMusicFileBtn: document.getElementById('openMusicFileBtn'),
+  musicFileInput: document.getElementById('musicFileInput'),
+  musicPlayPauseBtn: document.getElementById('musicPlayPauseBtn'),
+  musicPrevBtn: document.getElementById('musicPrevBtn'),
+  musicNextBtn: document.getElementById('musicNextBtn'),
+  rulesBtn: document.getElementById('rulesBtn'),
+  newBtn: document.getElementById('newBtn'),
+  allTimeScore: document.getElementById('allTimeScore'),
+  allTimeName: document.getElementById('allTimeName'),
+  allTimeMeta: document.getElementById('allTimeMeta'),
+  leaderboardList: document.getElementById('leaderboardList'),
+  lbSingleBtn: document.getElementById('lbSingleBtn'),
+  lbMultiBtn: document.getElementById('lbMultiBtn'),
+  leaderboardStatus: document.getElementById('leaderboardStatus'),
+  playerRow: document.getElementById('playerRow'),
+  currentPlayer: document.getElementById('currentPlayer'),
+  total: document.getElementById('total'),
+  cash: document.getElementById('cash'),
+  round: document.getElementById('round'),
+  rolls: document.getElementById('rolls'),
+  bonusText: document.getElementById('bonusText'),
+  bonusFill: document.getElementById('bonusFill'),
+  targetCard: document.getElementById('targetCard'),
+  targetName: document.getElementById('targetName'),
+  targetDesc: document.getElementById('targetDesc'),
+  targetBadge: document.getElementById('targetBadge'),
+  targetControls: document.getElementById('targetControls'),
+  targetSelect: document.getElementById('targetSelect'),
+  dice: [...document.querySelectorAll('.die')],
+  diceRail: document.getElementById('diceRail'),
+  rollBtn: document.getElementById('rollBtn'),
+  unholdBtn: document.getElementById('unholdBtn'),
+  hint: document.getElementById('hint'),
+  momentIcon: document.getElementById('momentIcon'),
+  momentTitle: document.getElementById('momentTitle'),
+  momentCopy: document.getElementById('momentCopy'),
+  heatCard: document.getElementById('heatCard'),
+  heatValue: document.getElementById('heatValue'),
+  heatFill: document.getElementById('heatFill'),
+  heatFlame: document.getElementById('heatFlame'),
+  heatTargetName: document.getElementById('heatTargetName'),
+  heatCopy: document.getElementById('heatCopy'),
+  rollShopCard: document.getElementById('rollShopCard'),
+  rollShopMeta: document.getElementById('rollShopMeta'),
+  rollShopCash: document.getElementById('rollShopCash'),
+  rollShopRerollDieBtn: document.getElementById('rollShopRerollDieBtn'),
+  rollShopCashScoreBtn: document.getElementById('rollShopCashScoreBtn'),
+  rollShopExtraRollBtn: document.getElementById('rollShopExtraRollBtn'),
+  upgradeDiceBtn: document.getElementById('upgradeDiceBtn'),
+  upperGrid: document.getElementById('upperGrid'),
+  lowerGrid: document.getElementById('lowerGrid'),
+  upperScore: document.getElementById('upperScore'),
+  bonusScore: document.getElementById('bonusScore'),
+  highScore: document.getElementById('highScore'),
+  shopCash: document.getElementById('shopCash'),
+  invCount: document.getElementById('invCount'),
+  inventory: document.getElementById('inventory'),
+  stock: document.getElementById('stock'),
+  poolMeta: document.getElementById('poolMeta'),
+  rerollShopBtn: document.getElementById('rerollShopBtn'),
+  sellLastBtn: document.getElementById('sellLastBtn'),
+  diceGuideBtn: document.getElementById('diceGuideBtn'),
+  diceGuideModal: document.getElementById('diceGuideModal'),
+  diceGuideList: document.getElementById('diceGuideList'),
+  diceGuideMeta: document.getElementById('diceGuideMeta'),
+  closeDiceGuideBtn: document.getElementById('closeDiceGuideBtn'),
+  shopLog: document.getElementById('shopLog'),
+  toastStack: document.getElementById('toastStack'),
+  turnBanner: document.getElementById('turnBanner'),
+  turnBannerName: document.getElementById('turnBannerName'),
+  turnBannerSub: document.getElementById('turnBannerSub'),
+  yahtzeeStorm: document.getElementById('yahtzeeStorm'),
+  rulesModal: document.getElementById('rulesModal'),
+  closeRulesBtn: document.getElementById('closeRulesBtn'),
+  endModal: document.getElementById('endModal'),
+  endTitle: document.getElementById('endTitle'),
+  finalScore: document.getElementById('finalScore'),
+  finalCopy: document.getElementById('finalCopy'),
+  playAgainBtn: document.getElementById('playAgainBtn'),
+  closeEndBtn: document.getElementById('closeEndBtn'),
+  showWinnerBtn: document.getElementById('showWinnerBtn')
+};
+
+let audioCtx = null;
+const shopLogLines = [];
+const MUSIC_CANDIDATE_FILES = [
+  'theme.mp3','music.mp3','background.mp3','bgm.mp3','song.mp3','track.mp3','track1.mp3','track2.mp3','track3.mp3','track4.mp3','track5.mp3','track6.mp3','track7.mp3','track8.mp3','track9.mp3','track10.mp3','01.mp3','02.mp3','03.mp3','04.mp3','05.mp3','dice.mp3','dicerush.mp3','soundtrack.mp3'
+];
+
+function updateAudioButton(){
+  const labels = [
+    '🔊 Audio: All On',
+    '🎵 Music Muted',
+    '✨ SFX Muted',
+    '🔇 Audio: All Muted'
+  ];
+  els.soundBtn.textContent = labels[state.muteStage] || labels[0];
+}
+
+function applyMusicMute(){
+  if (!els.musicPlayer) return;
+  els.musicPlayer.muted = state.musicMuted;
+  if (els.musicCard) els.musicCard.classList.toggle('muted', state.musicMuted);
+  if (state.musicMuted) {
+    setMusicStatus('Muted', state.musicTracks[state.musicIndex] ? 'Music muted. Click audio button to cycle.' : undefined);
+  } else if (state.musicTracks.length) {
+    setMusicStatus(els.musicPlayer.paused ? 'Ready' : 'Playing');
+  }
+}
+
+function cycleMuteMode(){
+  ensureAudio();
+  state.muteStage = (state.muteStage + 1) % 4;
+  state.musicMuted = state.muteStage === 1 || state.muteStage === 3;
+  state.sound = !(state.muteStage === 2 || state.muteStage === 3);
+  updateAudioButton();
+  applyMusicMute();
+  if (!state.musicMuted) tryPlayMusic('audio button');
+  if (state.sound) sfx.buy();
+}
+
+function prettyTrackName(url){
+  try {
+    const clean = decodeURIComponent(String(url).split('/').pop() || url);
+    return clean.replace(/\.mp3$/i,'').replace(/[-_]+/g,' ').trim() || clean;
+  } catch (error) {
+    return url;
+  }
+}
+
+function setMusicStatus(status, hint){
+  if (!els.musicState) return;
+  els.musicState.textContent = status;
+  if (state.musicTracks.length) {
+    const current = state.musicTracks[state.musicIndex] || state.musicTracks[0];
+    els.musicTrack.textContent = current ? prettyTrackName(current) : 'No track loaded';
+  }
+  if (hint) els.musicHint.innerHTML = hint;
+}
+
+function normalizeTrackUrl(track){
+  if (!track) return null;
+  const raw = String(track).trim();
+  if (!raw || !/\.mp3(\?|#|$)/i.test(raw)) return null;
+  if (/^(https?:|data:|blob:|\/)/i.test(raw)) return raw;
+  return raw.startsWith('mp3/') ? raw : `mp3/${raw}`;
+}
+
+async function fetchJsonPlaylist(path){
+  try {
+    const res = await fetch(path, { cache:'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : Array.isArray(data.tracks) ? data.tracks : [];
+    return list.map(normalizeTrackUrl).filter(Boolean);
+  } catch (error) {
+    return [];
+  }
+}
+
+async function fetchDirectoryTracks(){
+  try {
+    const res = await fetch('mp3/', { cache:'no-store' });
+    if (!res.ok) return [];
+    const type = (res.headers.get('content-type') || '').toLowerCase();
+    if (!type.includes('text/html') && !type.includes('text/plain')) return [];
+    const text = await res.text();
+    const tracks = [];
+    const hrefRegex = /href=["']([^"']+\.mp3(?:\?[^"']*)?)["']/ig;
+    let match;
+    while ((match = hrefRegex.exec(text))) tracks.push(normalizeTrackUrl(match[1]));
+    const plainRegex = /([\w% .()\-]+\.mp3)/ig;
+    while ((match = plainRegex.exec(text))) tracks.push(normalizeTrackUrl(match[1]));
+    return tracks.filter(Boolean);
+  } catch (error) {
+    return [];
+  }
+}
+
+async function probeCandidateTracks(){
+  const found = [];
+  for (const file of MUSIC_CANDIDATE_FILES) {
+    const url = `mp3/${file}`;
+    try {
+      const res = await fetch(url, { method:'HEAD', cache:'no-store' });
+      if (res.ok) found.push(url);
+    } catch (error) {}
+  }
+  return found;
+}
+
+function uniqueTracks(tracks){
+  const seen = new Set();
+  return tracks.filter(track => {
+    if (!track || seen.has(track)) return false;
+    seen.add(track);
+    return true;
+  });
+}
+
+function loadMusicTrack(index=0){
+  if (!els.musicPlayer || !state.musicTracks.length) return;
+  state.musicIndex = ((index % state.musicTracks.length) + state.musicTracks.length) % state.musicTracks.length;
+  els.musicPlayer.src = state.musicTracks[state.musicIndex];
+  els.musicPlayer.volume = 0.32;
+  els.musicPlayer.loop = state.musicTracks.length === 1;
+  els.musicPlayer.muted = state.musicMuted;
+  setMusicStatus(state.musicMuted ? 'Muted' : 'Ready', state.musicTracks.length === 1 ? 'One MP3 found. It will loop automatically.' : `${state.musicTracks.length} MP3 files found. Tracks rotate automatically.`);
+}
+
+async function tryPlayMusic(reason=''){
+  if (!els.musicPlayer || state.musicMuted || !state.musicTracks.length) return false;
+  if (!els.musicPlayer.src) loadMusicTrack(state.musicIndex);
+  try {
+    await els.musicPlayer.play();
+    state.musicStarted = true;
+    setMusicStatus('Playing');
+    return true;
+  } catch (error) {
+    setMusicStatus('Ready', 'Browser blocked autoplay. Click Roll, New Game, or the audio button once to start music.');
+    return false;
+  }
+}
+
+function nextMusicTrack(){
+  if (!state.musicTracks.length) return;
+  loadMusicTrack(state.musicIndex + 1);
+  tryPlayMusic('next track');
+}
+
+async function discoverMusicTracks(){
+  if (!els.musicPlayer || state.musicAutoplayTried) return;
+  state.musicAutoplayTried = true;
+  setMusicStatus('Searching', 'Searching the <b>mp3</b> folder on Vercel. The server will list all .mp3 files automatically.');
+  const tracks = uniqueTracks([
+    ...(await fetchJsonPlaylist('/api/mp3-list')),
+    ...(await fetchJsonPlaylist('mp3/playlist.json')),
+    ...(await fetchJsonPlaylist('mp3/index.json')),
+    ...(await fetchDirectoryTracks()),
+    ...(await probeCandidateTracks())
+  ]);
+  state.musicTracks = tracks;
+  state.musicReady = tracks.length > 0;
+  if (els.musicCard) els.musicCard.classList.toggle('missing', !tracks.length);
+  if (!tracks.length) {
+    setMusicStatus('No MP3', 'No MP3 file was found automatically. Put tracks in <b>mp3</b>. The Vercel API route will list them automatically after deploy.');
+    return;
+  }
+  loadMusicTrack(0);
+  tryPlayMusic('auto discovery');
+}
+
+function armMusicAutoplay(){
+  const start = () => { if (!state.musicMuted) tryPlayMusic('user gesture'); };
+  ['pointerdown','keydown','touchstart'].forEach(eventName => document.addEventListener(eventName, start, { once:true, passive:true }));
+}
+
+function openMusicModal(){
+  if (!els.musicModal) return;
+  els.musicModal.classList.add('show');
+  if (state.musicTracks.length) {
+    setMusicStatus(state.musicMuted ? 'Muted' : (els.musicPlayer.paused ? 'Ready' : 'Playing'));
+  } else {
+    setMusicStatus('No track', 'Choose a local MP3 file, or place MP3s in an <b>mp3</b> folder beside the HTML.');
+  }
+}
+
+function closeMusicModal(){
+  if (els.musicModal) els.musicModal.classList.remove('show');
+}
+
+function revokeManualMusicUrls(){
+  if (!state.manualMusicUrls) return;
+  state.manualMusicUrls.forEach(url => { try { URL.revokeObjectURL(url); } catch (error) {} });
+  state.manualMusicUrls = [];
+}
+
+function loadManualMusicFiles(fileList){
+  const files = [...(fileList || [])].filter(file => /\.mp3$/i.test(file.name || '') || (file.type || '').includes('mpeg'));
+  if (!files.length) {
+    setMusicStatus('No MP3 selected', 'Choose one or more <b>.mp3</b> files.');
+    return;
+  }
+  revokeManualMusicUrls();
+  state.manualMusicUrls = files.map(file => URL.createObjectURL(file));
+  state.musicTracks = state.manualMusicUrls;
+  state.musicIndex = 0;
+  state.musicReady = true;
+  state.musicStarted = false;
+  if (state.muteStage === 1) state.muteStage = 0;
+  if (state.muteStage === 3) state.muteStage = 2;
+  state.musicMuted = false;
+  updateAudioButton();
+  loadMusicTrack(0);
+  setMusicStatus('Selected', `${files.length} local MP3 file${files.length === 1 ? '' : 's'} selected.`);
+  applyMusicMute();
+  tryPlayMusic('manual file');
+}
+
+function toggleMusicPlayPause(){
+  if (!els.musicPlayer || !state.musicTracks.length) {
+    openMusicModal();
+    setMusicStatus('No track', 'Choose an MP3 file first.');
+    return;
+  }
+  if (els.musicPlayer.paused) tryPlayMusic('play button');
+  else { els.musicPlayer.pause(); setMusicStatus('Paused'); }
+}
+
+function setupSoundButtonLongPress(){
+  if (!els.soundBtn) return;
+  let timer = null;
+  let openedByLongPress = false;
+  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  els.soundBtn.addEventListener('pointerdown', () => {
+    openedByLongPress = false;
+    clear();
+    timer = setTimeout(() => {
+      openedByLongPress = true;
+      openMusicModal();
+      vibrate(18);
+    }, 650);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(eventName => els.soundBtn.addEventListener(eventName, clear));
+  els.soundBtn.addEventListener('click', event => {
+    if (openedByLongPress) {
+      event.preventDefault();
+      event.stopPropagation();
+      openedByLongPress = false;
+      return;
+    }
+    cycleMuteMode();
+  });
+  els.soundBtn.addEventListener('contextmenu', event => {
+    event.preventDefault();
+    clear();
+    openMusicModal();
+  });
+}
+
+function loadAllTimeRecord(){
+  try {
+    const raw = localStorage.getItem('diceRushAllTimeRecord');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const score = Number(parsed.score);
+      if (Number.isFinite(score)) {
+        return {
+          name: parsed.name || 'Unknown champion',
+          score,
+          date: parsed.date || '',
+          mode: parsed.mode || '',
+          players: Number(parsed.players || 1)
+        };
+      }
+    }
+  } catch (error) {}
+  const legacyScore = Number(localStorage.getItem('diceRushHighScore') || 0);
+  return {
+    name: legacyScore > 0 ? 'Unknown champion' : 'No champion yet',
+    score: Number.isFinite(legacyScore) ? legacyScore : 0,
+    date: '',
+    mode: '',
+    players: 1
+  };
+}
+
+function saveAllTimeRecord(record){
+  localStorage.setItem('diceRushAllTimeRecord', JSON.stringify(record));
+  localStorage.setItem('diceRushHighScore', String(record.score));
+}
+
+const initialRecord = loadAllTimeRecord();
+
+function loadUnlockLevel(){
+  const saved = Number(localStorage.getItem('diceRushUnlockLevel') || 0);
+  if (!Number.isFinite(saved)) return 0;
+  return Math.max(0, Math.min(10, Math.floor(saved)));
+}
+function saveUnlockLevel(level){
+  localStorage.setItem('diceRushUnlockLevel', String(Math.max(0, Math.min(10, Math.floor(level)))));
+}
+
+const NAME_KEYS = { p1: 'diceRushPlayer1Name', p2: 'diceRushPlayer2Name' };
+function savePlayerNamePrefs(){
+  localStorage.setItem(NAME_KEYS.p1, (els.name1.value || 'Player 1').trim() || 'Player 1');
+  localStorage.setItem(NAME_KEYS.p2, (els.name2.value || 'Player 2').trim() || 'Player 2');
+}
+function loadPlayerNamePrefs(){
+  const p1 = localStorage.getItem(NAME_KEYS.p1);
+  const p2 = localStorage.getItem(NAME_KEYS.p2);
+  if (p1) els.name1.value = p1;
+  if (p2) els.name2.value = p2;
+}
+function showYahtzeeStorm(){
+  if (!els.yahtzeeStorm) return;
+  els.yahtzeeStorm.classList.remove('show');
+  void els.yahtzeeStorm.offsetWidth;
+  els.yahtzeeStorm.classList.add('show');
+  [880, 1047, 1319, 1568].forEach((f,i)=>tone(f, .16, i % 2 ? 'sawtooth' : 'triangle', .06, i * .08));
+  for (let i=0;i<18;i++) noise(.05,.02,i*.04);
+  burst(window.innerWidth * .22, window.innerHeight * .28, 28);
+  burst(window.innerWidth * .5, window.innerHeight * .2, 40);
+  burst(window.innerWidth * .78, window.innerHeight * .28, 28);
+  screenPop();
+  vibrate([35,40,60,30,90]);
+  setTimeout(()=>els.yahtzeeStorm && els.yahtzeeStorm.classList.remove('show'), 3000);
+}
+
+const state = {
+  playerCount: 1,
+  targetMode: 'forced',
+  activePlayerIndex: 0,
+  dice: [1,1,1,1,1],
+  held: [false,false,false,false,false],
+  rollsLeft: 3,
+  hasRolled: false,
+  rolling: false,
+  sound: true,
+  musicMuted: false,
+  muteStage: 0,
+  musicTracks: [],
+  musicIndex: 0,
+  musicReady: false,
+  musicStarted: false,
+  musicAutoplayTried: false,
+  manualMusicUrls: [],
+  players: [],
+  highScore: initialRecord.score,
+  allTimeRecord: initialRecord,
+  leaderboard: { single: [], multiplayer: [] },
+  leaderboardTab: 'single',
+  leaderboardOnline: false,
+  leaderboardSaving: false,
+  unlockLevel: loadUnlockLevel(),
+  turnsScored: 0,
+  shopRerollsThisTurn: 0,
+  hoverTarget: null,
+  scoring: false,
+  brainFreezeArmed: false,
+  heatFloor: null
+};
+
+function createPlayer(name){
+  return {
+    name,
+    scores: {},
+    yahtzeeBonus: 0,
+    cash: 40,
+    inv: [],
+    paid: {},
+    upgrades: {},
+    cashScoreRanks: 0,
+    stock: [],
+    selectedTarget: 'ones',
+    lastTurn: null,
+    selectedSellIndex: null,
+    mousetrapUsed: false
+  };
+}
+
+function activePlayer(){ return state.players[state.activePlayerIndex]; }
+function isUsed(player, id){ return Object.prototype.hasOwnProperty.call(player.scores, id); }
+function sumDice(dice = state.dice){ return dice.reduce((a,b)=>a+b,0); }
+function counts(dice = state.dice){ return dice.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{}); }
+function isYahtzee(dice = state.dice){ return new Set(dice).size === 1; }
+function has(player, itemId){ return player.inv.includes(itemId); }
+function findCategory(id){ return categories.find(c=>c.id===id); }
+function escapeHTML(value){
+  return String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+}
+function shortName(name){ return escapeHTML(String(name || '').trim().slice(0,8) || 'P'); }
+
+function ensureAudio(){
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function tone(freq,duration=.1,type='sine',gain=.06,delay=0){
+  if(!state.sound || !audioCtx) return;
+  const now = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const vol = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  vol.gain.setValueAtTime(0.0001, now);
+  vol.gain.exponentialRampToValueAtTime(gain, now + .015);
+  vol.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  osc.connect(vol).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + duration + .03);
+}
+function noise(duration=.05,gain=.025,delay=0){
+  if(!state.sound || !audioCtx) return;
+  const now = audioCtx.currentTime + delay;
+  const length = Math.floor(audioCtx.sampleRate * duration);
+  const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<length;i++) data[i] = (Math.random()*2-1)*(1-i/length);
+  const src = audioCtx.createBufferSource();
+  const filter = audioCtx.createBiquadFilter();
+  const vol = audioCtx.createGain();
+  filter.type = 'bandpass';
+  filter.frequency.value = 1400 + Math.random()*1400;
+  vol.gain.value = gain;
+  src.buffer = buffer;
+  src.connect(filter).connect(vol).connect(audioCtx.destination);
+  src.start(now);
+}
+const sfx = {
+  roll(){ for(let i=0;i<10;i++){ tone(110+Math.random()*170,.045,'square',.022,i*.04); noise(.025,.015,i*.04);} },
+  hold(){ tone(480,.06,'triangle',.05); tone(720,.08,'triangle',.04,.05); },
+  unhold(){ tone(260,.06,'triangle',.05); tone(360,.06,'triangle',.03,.05); },
+  score(points){ const base = points >= 50 ? 540 : points >= 25 ? 420 : points > 0 ? 320 : 150; tone(base,.09,'sine',.07); tone(base*1.25,.11,'sine',.05,.06); tone(base*1.5,.14,'sine',.04,.13); },
+  big(){ [392,523,659,784,1047,1319].forEach((f,i)=>tone(f,.18,i%2?'triangle':'sawtooth',.06,i*.075)); for(let i=0;i<10;i++) noise(.04,.02,i*.05); },
+  buy(){ [523,659,784].forEach((f,i)=>tone(f,.12,'triangle',.055,i*.06)); },
+  bad(){ tone(140,.12,'sawtooth',.05); tone(95,.16,'sawtooth',.04,.09); }
+};
+function vibrate(pattern){ if (navigator.vibrate) navigator.vibrate(pattern); }
+
+function shopPrice(player,item){
+  return Math.max(1, Math.ceil(item.price * (has(player,'coupon') ? (isUpgraded(player,'coupon') ? .35 : .5) : 1)));
+}
+function currentRerollCost(){
+  return 5 + (state.shopRerollsThisTurn * 5);
+}
+function isItemUnlocked(item){
+  return true;
+}
+function unlockedItems(){
+  return shopItems;
+}
+function unlockNextDice(){
+  return null;
+}
+
+function hasStraight(length, dice = state.dice){
+  const unique = [...new Set(dice)].sort((a,b)=>a-b).join('');
+  const runs = length === 4 ? ['1234','2345','3456'] : ['12345','23456'];
+  return runs.some(run => unique.includes(run));
+}
+
+function hasAnyThreeConsecutive(dice = state.dice){
+  const unique = [...new Set(dice)].sort((a,b)=>a-b).join('');
+  return ['123','234','345','456'].some(run => unique.includes(run));
+}
+function hasExactlySequence(seq, dice = state.dice){
+  return dice.length === seq.length && [...dice].sort((a,b)=>a-b).join('-') === seq.join('-');
+}
+function countDistinctPairs(c){
+  return Object.values(c).filter(n => n >= 2).length;
+}
+function brainFreezeShouldScore(player){
+  if (!has(player,'brainfreeze')) return false;
+  const heldCount = state.held.filter(Boolean).length;
+  if (isUpgraded(player,'brainfreeze')) return heldCount >= 4 && state.hasRolled;
+  return state.hasRolled && state.rollsLeft === 1 && state.held.every(Boolean);
+}
+
+function computeBaseScore(catId, dice = state.dice){
+  const cat = findCategory(catId);
+  const c = counts(dice);
+  const values = Object.values(c);
+  const total = sumDice(dice);
+  if (cat.section === 'upper') return dice.filter(n => n === cat.face).reduce((a,b)=>a+b,0);
+  switch(catId){
+    case 'threeKind': return values.some(v=>v>=3) ? total : 0;
+    case 'fourKind': return values.some(v=>v>=4) ? total : 0;
+    case 'fullHouse': return values.includes(3) && values.includes(2) ? 25 : 0;
+    case 'smallStraight': return hasStraight(4,dice) ? 30 : 0;
+    case 'largeStraight': return hasStraight(5,dice) ? 40 : 0;
+    case 'yahtzee': return isYahtzee(dice) ? 50 : 0;
+    case 'chance': return total;
+    default: return 0;
+  }
+}
+
+function targetBonusMultiplier(catId, dice, categoryScore){
+  if (catId === 'chance') return { multiplier: 1, reason: 'Chance has no target multiplier.' };
+  const cat = findCategory(catId);
+  const c = counts(dice);
+  const values = Object.values(c);
+  if (cat && cat.section === 'upper') {
+    const hits = c[cat.face] || 0;
+    return { multiplier: Math.max(1, hits), reason: hits ? `${hits} matching ${cat.name}: full score x${Math.max(1, hits)}` : 'No target matches' };
+  }
+
+  // Important: lower-section heat only ignites when the actual category score is valid.
+  // Bonus dice can rescue points, but they do not fake the target pattern.
+  if (categoryScore <= 0) return { multiplier: 1, reason: 'Target missed: bonus dice may score, but no heat.' };
+
+  switch(catId){
+    case 'threeKind': return { multiplier: 3, reason: 'Three of a kind hit' };
+    case 'fourKind': return { multiplier: 4, reason: 'Four of a kind hit' };
+    case 'fullHouse': return { multiplier: 5, reason: 'Real Full House hit: 3 + 2 only' };
+    case 'smallStraight': return { multiplier: 4, reason: 'Small Straight hit' };
+    case 'largeStraight': return { multiplier: 5, reason: 'Large Straight hit' };
+    case 'yahtzee': return { multiplier: 5, reason: 'Yahtzee hit' };
+    default: return { multiplier: 2, reason: 'Target hit' };
+  }
+}
+
+function currentHeatInfo(){
+  const player = activePlayer();
+  if (!player || !state.hasRolled || state.scoring) {
+    return { multiplier: 1, targetId: null, targetName: 'No active heat yet', reason: 'Roll dice to build target heat.' };
+  }
+  let targetIds = [];
+  if (state.targetMode === 'forced') {
+    const forcedYahtzee = isYahtzee(state.dice) && !isUsed(player, 'yahtzee');
+    targetIds = [forcedYahtzee ? 'yahtzee' : currentTarget(player)].filter(Boolean);
+  } else if (state.hoverTarget && !isUsed(player, state.hoverTarget)) {
+    targetIds = [state.hoverTarget];
+  } else {
+    targetIds = bankableCategories(player).map(cat => cat.id);
+  }
+  let best = { multiplier: 1, targetId: targetIds[0] || null, targetName: 'Target heat', reason: 'No multiplier yet.', score: -Infinity };
+  targetIds.forEach(targetId => {
+    const cat = findCategory(targetId);
+    if (!cat) return;
+    const preview = effectScore(player, targetId, {preview:true});
+    const candidate = {
+      multiplier: preview.targetMultiplier || 1,
+      targetId,
+      targetName: cat.name,
+      reason: preview.targetMultiplier > 1 ? `Target hit: dice bonuses x${preview.targetMultiplier}` : '1x: no target flame yet.',
+      score: preview.score || 0
+    };
+    if (candidate.multiplier > best.multiplier || (candidate.multiplier === best.multiplier && candidate.score > best.score)) best = candidate;
+  });
+  if (state.rolling && state.heatFloor && (state.heatFloor.multiplier || 1) > (best.multiplier || 1)) {
+    return { ...state.heatFloor, reason: `${state.heatFloor.reason} Held during roll — heat will not drop while dice are flying.` };
+  }
+  return best;
+}
+function renderHeatMeter(){
+  if (!els.heatCard) return;
+  const info = currentHeatInfo();
+  const multiplier = Math.max(1, Math.min(5, Number(info.multiplier) || 1));
+  const progress = Math.max(0, Math.min(100, ((multiplier - 1) / 4) * 100));
+  const glow = multiplier <= 1 ? 0 : (multiplier - 1) / 4;
+  const flameScale = multiplier <= 1 ? 0 : (0.72 + glow * 1.24);
+  const flameOpacity = multiplier <= 1 ? 0 : (0.42 + glow * .58);
+  els.heatCard.style.setProperty('--heatProgress', `${progress}%`);
+  els.heatCard.style.setProperty('--flameScale', flameScale.toFixed(2));
+  els.heatCard.style.setProperty('--flameOpacity', flameOpacity.toFixed(2));
+  els.heatCard.style.setProperty('--heatGlow', glow.toFixed(2));
+  els.heatCard.classList.toggle('hot', multiplier > 1);
+  els.heatCard.classList.toggle('blazing', multiplier >= 5);
+  els.heatValue.textContent = `${multiplier}x`;
+  els.heatTargetName.textContent = info.targetId ? `${info.targetName} heat` : info.targetName;
+  els.heatCopy.textContent = multiplier <= 1
+    ? `${info.reason} Example: in Ones, one 1 is 1x and shows no flame.`
+    : `${info.reason}. This multiplies the full banked score, and the flame grows from left to right until 5x.`;
+}
+
+function selectedOwnedDice(player){
+  const index = normalizeSellSelection(player);
+  if (index === null || index === undefined) return null;
+  const id = player.inv[index];
+  const item = shopItems.find(it=>it.id===id);
+  return item ? { index, id, item } : null;
+}
+function renderRollShop(){
+  if (!els.rollShopCard) return;
+  const player = activePlayer();
+  if (!player) return;
+  const rerollCost = rollShopCost(player,'rerollDie');
+  const cashScoreCost = rollShopCost(player,'cashScore');
+  const extraRollCost = rollShopCost(player,'extraRoll');
+  const upgradeCost = rollShopCost(player,'upgradeDice');
+  const selected = selectedOwnedDice(player);
+  const selectedName = selected ? displayItemName(player, selected.item) : 'No dice selected';
+  const canAffordUpgrade = player.cash >= upgradeCost;
+  const upgradeTextEl = els.upgradeDiceBtn ? els.upgradeDiceBtn.querySelector('.rollShopText') : null;
+  if (upgradeTextEl) {
+    if (!selected) upgradeTextEl.textContent = 'Select an owned dice first.';
+    else if (isUpgraded(player, selected.id)) upgradeTextEl.textContent = `${selectedName} is already upgraded.`;
+    else if (canAffordUpgrade) upgradeTextEl.textContent = `UPGRADE PREVIEW: ${displayUpgradeHint(selected.item)}`;
+    else upgradeTextEl.textContent = 'Upgrade details unlock when you have enough cash.';
+  }
+  els.rollShopCash.textContent = `$${player.cash}`;
+  els.rollShopMeta.textContent = `Cash-score ranks: ${player.cashScoreRanks || 0} (${(player.cashScoreRanks || 0) * 10}% of cash added before heat). Selected: ${selectedName}.`;
+  els.rollShopRerollDieBtn.querySelector('.rollShopCost').textContent = `$${rerollCost}`;
+  els.rollShopCashScoreBtn.querySelector('.rollShopCost').textContent = `$${cashScoreCost}`;
+  els.rollShopExtraRollBtn.querySelector('.rollShopCost').textContent = `$${extraRollCost}`;
+  els.upgradeDiceBtn.querySelector('.rollShopCost').textContent = `$${upgradeCost}`;
+  els.rollShopRerollDieBtn.disabled = player.cash < rerollCost || !state.hasRolled || state.rolling || state.scoring;
+  els.rollShopCashScoreBtn.disabled = player.cash < cashScoreCost || state.rolling || state.scoring;
+  els.rollShopExtraRollBtn.disabled = player.cash < extraRollCost || !state.hasRolled || state.rolling || state.scoring;
+  els.upgradeDiceBtn.disabled = player.cash < upgradeCost || !selected || isUpgraded(player, selected.id) || state.rolling || state.scoring;
+  els.upgradeDiceBtn.title = selected && canAffordUpgrade && !isUpgraded(player, selected.id) ? `${displayItemName(player, selected.item)} upgrade — ${displayUpgradeHint(selected.item)}` : (selected ? 'Upgrade info appears here when you can afford it.' : 'Select an owned dice first.');
+}
+
+function effectScore(player, catId, {preview=false} = {}){
+  let dice = [...state.dice];
+  const notes = [];
+  const usedItems = [];
+  let money = 0;
+  const cat = findCategory(catId);
+  const markUsed = (id, note) => {
+    if (id && !usedItems.includes(id)) usedItems.push(id);
+    if (note) notes.push(note);
+  };
+
+  if (has(player,'mirror')) {
+    const lowest = Math.min(...dice);
+    const highest = Math.max(...dice);
+    const index = dice.indexOf(lowest);
+    if (lowest !== highest) {
+      dice[index] = highest;
+      markUsed('mirror','Mirror copied highest');
+    }
+  }
+
+  if (has(player,'vampire') && cat.section === 'lower' && dice.includes(1)) {
+    dice = dice.map(n => n === 1 ? 6 : n);
+    markUsed('vampire','Vampire turned 1s to 6s');
+  }
+
+  if (has(player,'ufo')) {
+    const idx = preview ? Math.max(0, dice.findIndex(n => n !== 6)) : Math.floor(Math.random() * dice.length);
+    if (idx >= 0) dice[idx] = 6;
+    markUsed('ufo', 'UFO changed one die to 6');
+  }
+  if (has(player,'mutant')) {
+    if (preview) {
+      const idx = dice.findIndex(n => n !== 6);
+      if (idx !== -1) {
+        dice[idx] = 6;
+        markUsed('mutant','Mutant preview: one die to 6');
+      }
+    } else if (Math.random() < .5) {
+      const idx = Math.floor(Math.random() * dice.length);
+      dice[idx] = 6;
+      markUsed('mutant','Mutant Pip changed one die to 6');
+    }
+  }
+
+  const c = counts(dice);
+  const values = Object.values(c);
+  const total = sumDice(dice);
+  let categoryScore = computeBaseScore(catId, dice);
+  let diceScore = 0;
+  let flatPenalty = 0;
+  let wogPenaltyLost = 0;
+
+  const currentRawScore = () => categoryScore + diceScore;
+  const addScore = (id, amount, note) => {
+    if (!amount) return;
+    diceScore += amount;
+    markUsed(id, note);
+  };
+  const addMoney = (id, amount, note) => {
+    if (!amount) return;
+    money += amount;
+    markUsed(id, note);
+  };
+
+  const cashScoreRanks = player.cashScoreRanks || 0;
+  if (cashScoreRanks > 0) {
+    const cashScoreBonus = Math.floor(player.cash * 0.10 * cashScoreRanks);
+    addScore('rollshop_cash', cashScoreBonus, cashScoreBonus ? `Cash-to-score rank ${cashScoreRanks}: +${cashScoreBonus} before heat` : '');
+  }
+
+  if (has(player,'snake') && catId === 'ones') {
+    const boosted = dice.filter(n=>n===1).length * 6;
+    if (boosted !== categoryScore) markUsed('snake','Snake Eyes boosted ones');
+    categoryScore = boosted;
+  }
+  if (has(player,'royal') && catId === 'yahtzee' && isYahtzee(dice)) {
+    categoryScore = 150;
+    markUsed('royal','Royal Yahtzee');
+  }
+  if (has(player,'boom')) {
+    const bonus = (c[6]||0)*6;
+    addScore('boom', bonus, bonus ? `Boom Sixes +${bonus}` : '');
+  }
+  if (has(player,'space') && catId === 'largeStraight' && computeBaseScore(catId,dice) > 0) {
+    addScore('space', 100, 'Straight to Space +100');
+  }
+  if (has(player,'mouse') && catId === 'fullHouse' && computeBaseScore(catId,dice) > 0) {
+    addScore('mouse', 50, 'House Mouse +50 +$18');
+    addMoney('mouse', 18, '');
+  }
+  if (has(player,'neon') && total >= 20) addScore('neon', 20, 'Neon +20');
+  if (has(player,'magnet') && catId === 'smallStraight' && categoryScore === 0) {
+    const unique = [...new Set(dice)].sort((a,b)=>a-b).join('');
+    if (['123','234','345','456'].some(run => unique.includes(run))) {
+      categoryScore = 30;
+      markUsed('magnet','Straight Magnet activated');
+    }
+  }
+  if (has(player,'chaos')) {
+    const extra = preview ? 18 : Math.floor(Math.random()*37);
+    addScore('chaos', extra, `Chaos +${extra}`);
+  }
+  if (has(player,'slot') && values.some(v=>v>=3)) addMoney('slot', 25, 'Slot Machine +$25');
+  if (has(player,'duck')) {
+    const duckScore = (c[2]||0) * 4;
+    const duckMoney = (c[2]||0) * 2;
+    if (duckScore || duckMoney) {
+      diceScore += duckScore;
+      money += duckMoney;
+      markUsed('duck', `Duck Dividend +${duckScore} +$${duckMoney}`);
+    }
+  }
+  if (has(player,'soup')) {
+    if (total <= 8) addScore('soup', 35, 'Sad Soup deep sadness +35');
+    else if (total <= 12) addScore('soup', 22, 'Sad Soup +22');
+  }
+  if (has(player,'bacon') && dice.includes(4) && dice.includes(2)) addScore('bacon', 42, 'Bacon 4:20 +42');
+  if (has(player,'dentist')) {
+    const pairBonus = Object.values(c).reduce((acc,n)=>acc + Math.floor(n/2),0) * 9;
+    addScore('dentist', pairBonus, pairBonus ? `Dentist pairs +${pairBonus}` : '');
+  }
+  if (has(player,'banana') && currentRawScore() === 0 && catId !== 'chance') addScore('banana', 25, 'Banana Peel rescued zero');
+  if (has(player,'coffee') && state.rollsLeft === 2) addScore('coffee', 30, 'Espresso speed bonus +30');
+  if (has(player,'goblin') && total === 13) {
+    addScore('goblin', 33, 'Greed Goblin total 13 +33 +$33');
+    addMoney('goblin', 33, '');
+  }
+  if (has(player,'clown') && catId === 'fourKind' && computeBaseScore(catId,dice) > 0) addScore('clown', 40, 'Clown Car +40');
+  if (has(player,'accountant') && catId === 'chance') {
+    const accountBonus = player.inv.length * 5;
+    addScore('accountant', accountBonus, accountBonus ? `Accountant +${accountBonus}` : '');
+  }
+  if (has(player,'sock') && currentRawScore() > 0 && currentRawScore() % 2 === 1) addScore('sock', 9, 'Wet Sock +9');
+  if (has(player,'cheese')) {
+    const cheeseBonus = (c[5]||0) * 5;
+    if (cheeseBonus) {
+      diceScore += cheeseBonus;
+      money += cheeseBonus;
+      markUsed('cheese', `Cheese Tax +${cheeseBonus} +$${cheeseBonus}`);
+    }
+  }
+  if (has(player,'otter')) {
+    const otterScore = (c[3]||0) * 3;
+    const otterMoney = (c[3]||0) * 2;
+    if (otterScore || otterMoney) {
+      diceScore += otterScore;
+      money += otterMoney;
+      markUsed('otter', `Otter Auditor +${otterScore} +$${otterMoney}`);
+    }
+  }
+  if (has(player,'minty')) {
+    const mintyScore = (c[4]||0) * 4;
+    const mintyMoney = (c[4]||0) * 2;
+    if (mintyScore || mintyMoney) {
+      diceScore += mintyScore;
+      money += mintyMoney;
+      markUsed('minty', `Minty Pip +${mintyScore} +$${mintyMoney}`);
+    }
+  }
+  if (has(player,'pretzel') && new Set(dice).size === 4) addScore('pretzel', 12, 'Pretzel Knot +12');
+  if (has(player,'polse') && total === 18) addScore('polse', 28, 'Pølse Power +28');
+  if (has(player,'stink') && dice.filter(n => n % 2 === 0).length >= 3) addScore('stink', 16, 'Stink Bomb +16');
+  if (brainFreezeShouldScore(player)) addScore('brainfreeze', isUpgraded(player,'brainfreeze') ? 45 : 20, isUpgraded(player,'brainfreeze') ? 'Deep Freeze +45' : 'Brain Freeze +20');
+  if (has(player,'hedgehog')) {
+    const hedgeBonus = Math.min(25, Math.floor(player.cash / 5));
+    addScore('hedgehog', hedgeBonus, hedgeBonus ? `Hedgehog Hoard +${hedgeBonus}` : '');
+  }
+  if (has(player,'sykkel') && hasAnyThreeConsecutive(dice)) addScore('sykkel', 18, 'Sykkel Sprint +18');
+  if (has(player,'mousetrap') && catId === 'threeKind' && !player.mousetrapUsed && computeBaseScore(catId,dice) > 0) addMoney('mousetrap', 30, 'Mousetrap Bounty +$30');
+  if (has(player,'garlic') && isYahtzee(dice)) addMoney('garlic', 50, 'Garlic Knight +$50');
+  if (has(player,'goose') && (hasStraight(4,dice) || hasStraight(5,dice))) addMoney('goose', 25, 'Honking Goose +$25');
+  if (has(player,'roller')) {
+    const tripleFace = Math.max(0, ...Object.entries(c).filter(([,n]) => n >= 3).map(([face]) => Number(face)));
+    if (tripleFace) addScore('roller', tripleFace * 8, `Roller Disco +${tripleFace * 8}`);
+  }
+  if (has(player,'sushi') && countDistinctPairs(c) >= 2) addScore('sushi', 30, 'Sushi Combo +30');
+  if (has(player,'trolltunga') && isYahtzee(dice) && dice[0] % 2 === 1) {
+    addScore('trolltunga', 130, 'Trolltunga Triumph +130 +$50');
+    addMoney('trolltunga', 50, '');
+  }
+  if (has(player,'lightning') && state.rollsLeft === 2) addScore('lightning', 90, 'Lightning Round +90');
+  if (has(player,'unicorn') && hasExactlySequence([2,3,4,5,6], dice)) {
+    addScore('unicorn', 130, 'Unicorn Sequence +130 +$30');
+    addMoney('unicorn', 30, '');
+  }
+  if (has(player,'doskal') && currentRawScore() > 0 && currentRawScore() % 10 === 0) addScore('doskal', 10, 'Doskål +10');
+  if (has(player,'ufo')) addScore('ufo', 40, 'UFO Abduction +40');
+  if (has(player,'wizard') && new Set(dice).size === 3) addScore('wizard', 33, 'Tiny Wizard +33');
+  if (has(player,'panic') && state.rollsLeft === 0 && currentRawScore() < 15) addScore('panic', 35, 'Panic Button +35');
+  if (has(player,'troll') && (dice.every(n=>n%2===0) || dice.every(n=>n%2===1))) addScore('troll', 66, 'Trønder Troll +66');
+  if (has(player,'pizza') && total === 25) addScore('pizza', 25, 'Pizza Math +25');
+  if (has(player,'raccoon') && c[1]) {
+    const trashBonus = c[1] * 11;
+    addScore('raccoon', trashBonus, `Trash Panda +${trashBonus}`);
+  }
+  if (has(player,'moon') && dice.every(n => n <= 3)) addScore('moon', 44, 'Tiny Moon +44');
+  if (has(player,'alien') && new Set(dice).size === 5) addScore('alien', 55, 'Suspicious Alien +55');
+  if (has(player,'forklift') && (c[6]||0) >= 2) addScore('forklift', 24, 'Forklift Certified +24');
+  if (has(player,'grandma') && cat.section === 'upper') addScore('grandma', 20, 'Grandma’s Purse +20');
+  if (has(player,'microwave') && total % 2 === 0) addScore('microwave', 16, 'Angry Microwave +16');
+  if (has(player,'lawsuit') && c[1]) {
+    const legalBonus = c[1] * 9;
+    addScore('lawsuit', legalBonus, `Lawsuit Dice +${legalBonus}`);
+  }
+  if (has(player,'viking') && dice.filter(n => n % 2 === 1).length >= 3) addScore('viking', 30, 'Viking Audit +30');
+  if (has(player,'jackpot') && Object.values(c).filter(n => n === 2).length === 1 && !Object.values(c).some(n => n > 2)) addScore('jackpot', 77, 'One Pair Jackpot +77');
+  if (has(player,'glue')) {
+    const glueBonus = state.held.filter(Boolean).length * 7;
+    addScore('glue', glueBonus, glueBonus ? `Glue Goblin +${glueBonus}` : '');
+  }
+  if (has(player,'couch') && state.rollsLeft === 0) addScore('couch', 18, 'Last Roll Couch +18');
+  if (has(player,'treasure') && currentRawScore() === 0) addScore('treasure', 40, 'Participation Trophy +40');
+  if (has(player,'opera') && hasStraight(4,dice)) addScore('opera', 35, 'Opera Straightener +35');
+  if (has(player,'blackhole')) {
+    if (total === 30) {
+      addScore('blackhole', 300, 'Black Hole 30: five 6s jackpot +300 +$100');
+      addMoney('blackhole', 100, '');
+    } else if (total >= 26) addScore('blackhole', 40, 'Black Hole Gravity +40');
+  }
+
+  // Smart upgrades: every upgraded dice gains a stronger, theme-aware payoff before heat.
+  for (const id of [...new Set(player.inv || [])]) {
+    if (!isUpgraded(player,id) || id === 'wog') continue;
+    const payload = smartUpgradePayload(id, {player, catId, cat, dice, c, values, total, categoryScore, diceScore, money, preview, currentRawScore});
+    if (!payload) continue;
+    addScore(id, payload.score || 0, payload.note || `${displayItemName(player, shopItems.find(it=>it.id===id))} upgrade`);
+    addMoney(id, payload.money || 0, payload.money ? `${displayItemName(player, shopItems.find(it=>it.id===id))} upgrade +$${payload.money}` : '');
+  }
+
+  const targetBoost = targetBonusMultiplier(catId, dice, categoryScore);
+  let preMultiplierScore = categoryScore + diceScore;
+  if (has(player,'dragon') && (preMultiplierScore * targetBoost.multiplier) >= 60) {
+    addScore('dragon', 30, 'Dragon Hoard +30 +$40');
+    addMoney('dragon', 40, '');
+    preMultiplierScore = categoryScore + diceScore;
+  }
+
+  const multipliedScore = preMultiplierScore * targetBoost.multiplier;
+  let score = multipliedScore;
+  if (targetBoost.multiplier > 1 && preMultiplierScore > 0) {
+    notes.push(`Target heat x${targetBoost.multiplier}: full score ${preMultiplierScore} → ${multipliedScore}`);
+  }
+
+  if (has(player,'wog')) {
+    if (isUpgraded(player,'wog')) {
+      const wowScore = isYahtzee(dice) ? 666 : ((c[1]||0) ? 111 + (c[1]||0) * 22 : 66);
+      score += wowScore;
+      money += (c[1]||0) ? 66 : 22;
+      markUsed('wog', `WOW blessing +${wowScore} +$${(c[1]||0) ? 66 : 22}`);
+    } else {
+      const wogPenalty = (c[1]||0) > 0 ? 12 : 3;
+      flatPenalty += wogPenalty;
+      markUsed('wog', `WOG is bad: -${wogPenalty}`);
+    }
+  }
+  if (flatPenalty) {
+    wogPenaltyLost = flatPenalty;
+    score = Math.max(0, score - flatPenalty);
+  }
+
+  if (has(player,'lifebuoy') && score < (isUpgraded(player,'lifebuoy') ? 60 : 20)) {
+    score = isUpgraded(player,'lifebuoy') ? 80 : 45;
+    markUsed('lifebuoy', isUpgraded(player,'lifebuoy') ? 'Rescue Boat upgraded score to 80' : 'Lifebuoy rescued score to 45');
+  }
+
+  if (has(player,'cat') && !preview && score > 0) {
+    const catChance = isUpgraded(player,'cat') ? .5 : .35;
+    if (Math.random() < catChance) {
+      const catMult = isUpgraded(player,'cat') && Math.random() < .25 ? 3 : 2;
+      score *= catMult;
+      markUsed('cat', catMult === 3 ? 'Golden Cat TRIPLED it!' : 'Lucky Cat doubled it!');
+    }
+  }
+  if (has(player,'printer') && score > 0) addMoney('printer', isUpgraded(player,'printer') ? 40 : 14, isUpgraded(player,'printer') ? 'Laser Printer +$40' : 'Money Printer +$14');
+  if (has(player,'tax') && score === 0) addMoney('tax', isUpgraded(player,'tax') ? 75 : 30, isUpgraded(player,'tax') ? 'Tax Refund +$75' : 'Tax Goblin +$30');
+
+  return { score, money, notes, dice, usedItems, targetMultiplier: targetBoost.multiplier, diceBonus: diceScore, categoryScore, preMultiplierScore, multipliedScore, wogPenaltyLost };
+}
+
+function playerUpperTotal(player){
+  return categories.filter(c=>c.section==='upper').reduce((sum,c)=>sum + (player.scores[c.id] ?? 0), 0);
+}
+function playerBonus(player){ return playerUpperTotal(player) >= UPPER_BONUS_THRESHOLD ? UPPER_BONUS_POINTS : 0; }
+function playerTotal(player){ return Object.values(player.scores).reduce((a,b)=>a+b,0) + playerBonus(player) + player.yahtzeeBonus; }
+function playerRound(player){ return Object.keys(player.scores).length + 1; }
+function availableCategories(player){ return categories.filter(c => !isUsed(player,c.id)); }
+function currentTarget(player = activePlayer()){
+  if (state.targetMode === 'forced') {
+    return availableCategories(player)[0]?.id || null;
+  }
+  // Pick mode no longer has a pre-roll dropdown. A row becomes the target when you hover it
+  // for preview/highlights, and when you click it to bank.
+  if (state.hoverTarget && !isUsed(player, state.hoverTarget)) return state.hoverTarget;
+  return null;
+}
+function bankableCategories(player = activePlayer()){
+  return availableCategories(player).map(c => c.id);
+}
+
+function matchingIndices(targetId){
+  if (!state.hasRolled || !targetId) return [];
+  const dice = state.dice;
+  const c = counts(dice);
+  const entries = Object.entries(c).sort((a,b)=>b[1]-a[1] || b[0]-a[0]);
+
+  if (['ones','twos','threes','fours','fives','sixes'].includes(targetId)) {
+    const face = findCategory(targetId).face;
+    return dice.map((v,i)=>v===face?i:null).filter(v=>v!==null);
+  }
+  if (targetId === 'chance') return [0,1,2,3,4];
+  if (targetId === 'yahtzee' || targetId === 'threeKind' || targetId === 'fourKind') {
+    const face = Number(entries[0]?.[0] || 0);
+    return dice.map((v,i)=>v===face?i:null).filter(v=>v!==null);
+  }
+  if (targetId === 'fullHouse') {
+    const topTwo = entries.slice(0,2).map(([face])=>Number(face));
+    return dice.map((v,i)=>topTwo.includes(v)?i:null).filter(v=>v!==null);
+  }
+  if (targetId === 'smallStraight' || targetId === 'largeStraight') {
+    const neededRuns = targetId === 'smallStraight' ? [[1,2,3,4],[2,3,4,5],[3,4,5,6]] : [[1,2,3,4,5],[2,3,4,5,6]];
+    let bestRun = [];
+    for (const run of neededRuns) {
+      const unique = [...new Set(dice)];
+      const count = run.filter(n => unique.includes(n)).length;
+      if (count > bestRun.length) bestRun = run.filter(n => unique.includes(n));
+    }
+    const used = new Set();
+    const indices = [];
+    bestRun.forEach(n => {
+      const idx = dice.findIndex((v,i)=>v===n && !used.has(i));
+      if (idx !== -1) { used.add(idx); indices.push(idx); }
+    });
+    return indices;
+  }
+  return [];
+}
+
+function rarityWeight(item, progress){
+  const base = { common: 105, uncommon: 58, rare: 24, legend: 6, cursed: 18 }[item.rarity] || 40;
+  const rarityBoost = {
+    common: Math.max(.48, 1 - progress * .52),
+    uncommon: .95 + progress * .45,
+    rare: 1 + progress * 2.8,
+    legend: 1 + progress * 7.0,
+    cursed: .85
+  }[item.rarity] || 1;
+  return Math.max(1, base * rarityBoost);
+}
+function weightedPick(pool, progress){
+  const total = pool.reduce((sum,item)=>sum + rarityWeight(item, progress), 0);
+  let roll = Math.random() * total;
+  for (let i=0;i<pool.length;i++) {
+    roll -= rarityWeight(pool[i], progress);
+    if (roll <= 0) return i;
+  }
+  return pool.length - 1;
+}
+function refreshShop(player){
+  const pool = shopItems.filter(item => !player.inv.includes(item.id));
+  const progress = Math.min(1, Math.max(0, (playerRound(player) - 1) / (categories.length - 1)));
+  player.stock = [];
+  while (player.stock.length < 3 && pool.length) {
+    const i = weightedPick(pool, progress);
+    player.stock.push(pool.splice(i,1)[0].id);
+  }
+}
+
+function renderPlayers(){
+  els.playerRow.innerHTML = '';
+  state.players.forEach((player,index)=>{
+    const chip = document.createElement('div');
+    chip.className = 'playerChip' + (index===state.activePlayerIndex ? ' active' : '');
+    const last = player.lastTurn ? ` • <span class="turnLast">Last: ${escapeHTML(player.lastTurn.name)} +${player.lastTurn.score}</span>` : '';
+    chip.innerHTML = `<div><strong>${escapeHTML(player.name)}</strong><small>${Object.keys(player.scores).length}/13 categories • $${player.cash}${last}</small></div><div class="pScore">${playerTotal(player)}</div>`;
+    chip.onclick = () => {
+      if (state.playerCount === 1 || index === state.activePlayerIndex || state.hasRolled) return;
+      state.activePlayerIndex = index;
+      state.shopRerollsThisTurn = 0;
+      syncTargetForPlayer();
+      render();
+    };
+    els.playerRow.appendChild(chip);
+  });
+}
+
+function renderTargetSelector(player){
+  // The old picker is intentionally hidden. In pick mode you bank by clicking a score row.
+  const forced = state.targetMode === 'forced';
+  if (els.targetControls) els.targetControls.style.display = 'none';
+  if (els.targetCard) els.targetCard.style.display = forced ? 'grid' : 'none';
+
+  const target = forced ? currentTarget(player) : null;
+  const cat = target ? findCategory(target) : null;
+  els.targetName.textContent = forced && cat ? cat.name : 'Click a score row';
+  els.targetDesc.textContent = forced && cat ? cat.desc : 'After rolling, click any unused scorecard row to bank there.';
+  if (els.targetSelect) {
+    els.targetSelect.innerHTML = '';
+    els.targetSelect.disabled = true;
+  }
+}
+
+function renderDice(){
+  const target = currentTarget();
+  const matches = new Set(matchingIndices(target));
+  els.dice.forEach((die,i)=>{
+    if (!die.children.length) {
+      for (let j=0;j<9;j++){ const pip = document.createElement('span'); pip.className='pip'; die.appendChild(pip); }
+    }
+    die.dataset.v = state.dice[i];
+    die.classList.toggle('held', state.held[i]);
+    die.classList.toggle('lock', !state.hasRolled || state.rolling);
+    die.classList.toggle('match', matches.has(i));
+    die.setAttribute('aria-label', `Die ${i+1}: ${state.dice[i]}${state.held[i]?', held':''}`);
+  });
+}
+
+function renderScoreCards(){
+  const player = activePlayer();
+  const forced = state.targetMode === 'forced';
+  const target = forced ? currentTarget(player) : state.hoverTarget;
+  els.upperGrid.innerHTML = '';
+  els.lowerGrid.innerHTML = '';
+
+  categories.forEach(cat => {
+    const activeUsed = isUsed(player,cat.id);
+    const preview = state.hasRolled ? effectScore(player,cat.id,{preview:true}).score : '—';
+    const isTarget = target === cat.id;
+    const lockedByTarget = forced && !activeUsed && target && !isTarget;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.cat = cat.id;
+    btn.className = 'category';
+    if (state.playerCount === 2) btn.classList.add('twoPlayer');
+    const allPlayersUsed = state.players.length > 1 && state.players.every(p => isUsed(p,cat.id));
+    if ((state.playerCount === 1 && activeUsed) || allPlayersUsed) btn.classList.add('used');
+    if (isTarget) btn.classList.add('target');
+    if (lockedByTarget) btn.classList.add('lockedTarget');
+    const canClickThisRow = state.hasRolled && !state.rolling && !state.scoring && !activeUsed && (!forced || isTarget);
+    btn.disabled = !canClickThisRow;
+
+    if (state.playerCount === 2) {
+      const chips = state.players.map((p,idx)=>{
+        const pUsed = isUsed(p,cat.id);
+        const isActive = idx === state.activePlayerIndex;
+        const value = pUsed ? p.scores[cat.id] : (isActive && state.hasRolled && !activeUsed ? preview : '—');
+        const classes = ['duelChip'];
+        if (pUsed) classes.push('scored');
+        if (isActive) classes.push('active');
+        if (isActive && !pUsed && state.hasRolled) classes.push('preview');
+        return `<div class="${classes.join(' ')}"><div class="duelName">${shortName(p.name)}</div><div class="duelValue">${value}</div></div>`;
+      }).join('');
+      btn.innerHTML = `<div><div class="catName">${cat.name}</div><div class="catDesc">${cat.desc}</div></div><div class="scoreDuel">${chips}</div>`;
+    } else {
+      btn.innerHTML = `<div><div class="catName">${cat.name}</div><div class="catDesc">${cat.desc}</div></div><div class="chip">${activeUsed ? player.scores[cat.id] : preview}</div>`;
+    }
+    btn.onmouseenter = () => {
+      if (!forced && state.hasRolled && !activeUsed && !state.rolling && !state.scoring) {
+        state.hoverTarget = cat.id;
+        renderDice();
+        renderShop();
+        renderHeatMeter();
+      }
+    };
+    btn.onfocus = btn.onmouseenter;
+    btn.onmouseleave = () => {
+      if (!forced && state.hoverTarget === cat.id) {
+        state.hoverTarget = null;
+        renderDice();
+        renderShop();
+        renderHeatMeter();
+      }
+    };
+    btn.onblur = btn.onmouseleave;
+    btn.onclick = () => scoreTarget(cat.id, btn);
+    (cat.section === 'upper' ? els.upperGrid : els.lowerGrid).appendChild(btn);
+  });
+}
+
+function renderShop(){
+  const player = activePlayer();
+  els.shopCash.textContent = `$${player.cash}`;
+  if (els.poolMeta) els.poolMeta.textContent = `All ${shopItems.length} dice unlocked • stronger dice are rarer • rare odds rise in round ${Math.min(playerRound(player),13)}/13`;
+  els.invCount.textContent = `${player.inv.length} / 6`;
+  els.inventory.innerHTML = '';
+  normalizeSellSelection(player);
+  const previewTargets = state.targetMode === 'forced'
+    ? [currentTarget(player)].filter(Boolean)
+    : bankableCategories(player);
+  const activeBonusItems = new Set();
+  if (state.hasRolled && !state.rolling && !state.scoring) {
+    previewTargets.forEach(targetId => effectScore(player, targetId, {preview:true}).usedItems.forEach(id => activeBonusItems.add(id)));
+  }
+  for (let i=0;i<6;i++) {
+    const id = player.inv[i];
+    const item = shopItems.find(it=>it.id===id);
+    const slot = document.createElement('button');
+    slot.type = 'button';
+    const selected = item && player.selectedSellIndex === i;
+    const upgraded = item && isUpgraded(player, item.id);
+    const activeBonus = item && activeBonusItems.has(item.id);
+    slot.className = 'slot' + (item ? ' owned' : '') + (selected ? ' selected' : '') + (activeBonus ? ' activeBonus' : '') + (upgraded ? ' upgraded' : '');
+    if (item) {
+      slot.dataset.itemId = item.id;
+      const sale = getSellRefund(player, i);
+      const detail = `${displayItemName(player,item)} (${item.rarity}). ${displayItemDesc(player,item)} Bought for $${sale.paid}. Sells for $${sale.refund}.${activeBonus ? ' Active now: this dice changes the current bank preview.' : ''}`;
+      slot.title = detail;
+      slot.setAttribute('aria-label', detail);
+      slot.innerHTML = `<div class="slotEmoji">${item.emoji}</div><div class="slotName">${displayItemName(player,item)}</div><div class="slotText">${diceSlotStatus(player,item,activeBonus,selected)} • Sell $${sale.refund}</div>`;
+      const explainOwnedDice = () => setMoment(item.emoji, displayItemName(player,item), `${displayItemDesc(player,item)} Bought for $${sale.paid}. Sell value: $${sale.refund}.${activeBonus ? ' Active now: it is included in the current bank preview.' : ''}`);
+      slot.onmouseenter = explainOwnedDice;
+      slot.onfocus = explainOwnedDice;
+      slot.onclick = () => {
+        player.selectedSellIndex = i;
+        setMoment(item.emoji, `${displayItemName(player,item)} selected`, `${displayItemDesc(player,item)} Sell it for $${sale.refund}, upgrade it for $${rollShopCost(player,'upgradeDice')}, or keep it for future scores.`);
+        render();
+      };
+    } else {
+      slot.disabled = true;
+      slot.innerHTML = `<div class="slotEmoji">◇</div><div class="slotName">Empty slot</div><div class="slotText">Buy a dice</div>`;
+    }
+    els.inventory.appendChild(slot);
+  }
+  els.stock.innerHTML = '';
+  player.stock.forEach(itemId => {
+    const item = shopItems.find(it=>it.id===itemId);
+    const cost = shopPrice(player,item);
+    const btn = document.createElement('button');
+    btn.className = 'item';
+    btn.disabled = player.cash < cost || player.inv.length >= 6 || player.inv.includes(item.id);
+    btn.innerHTML = `<div class="emoji">${item.emoji}</div><div><div class="catName">${item.name}<span class="rarity rarity-${item.rarity}">${item.rarity}</span></div><div class="catDesc">${displayItemDesc(player,item)}</div></div><div class="price">$${cost}</div>`;
+    btn.onclick = () => buyItem(item.id, btn);
+    els.stock.appendChild(btn);
+  });
+  const rerollCost = currentRerollCost();
+  els.rerollShopBtn.textContent = `Reroll shop $${rerollCost}`;
+  els.rerollShopBtn.disabled = player.cash < rerollCost;
+  const lastSell = getSellRefund(player);
+  els.sellLastBtn.textContent = lastSell ? `Sell selected: ${lastSell.item.name} +$${lastSell.refund}` : 'Sell selected dice';
+  els.sellLastBtn.disabled = !lastSell;
+  renderHeatMeter();
+  renderRollShop();
+}
+
+function renderDiceGuide(){
+  const player = activePlayer();
+  if (els.diceGuideMeta) {
+    els.diceGuideMeta.textContent = `All ${shopItems.length} dice are in the starting loot pool. Common dice appear more early; rare and legendary dice become more likely later in the game. Owned upgraded dice show only their current upgraded effect.`;
+  }
+  if (!els.diceGuideList) return;
+  els.diceGuideList.innerHTML = shopItems.map(item => {
+    const doc = diceDocs[item.id] || { detail: item.desc, example: 'Example: When the condition is true, this dice changes the score or money when you bank the target.' };
+    const ownedUpgraded = player && player.inv.includes(item.id) && isUpgraded(player,item.id);
+    const detail = ownedUpgraded ? displayItemDesc(player,item) : doc.detail;
+    const example = ownedUpgraded
+      ? (item.id === 'wog'
+        ? 'Example: Roll 1-1-4-5-6 and WOW gives +111 +44 score and +$66. Roll any Yahtzee and WOW gives +666. No penalty ever.'
+        : 'Example: This entry is upgraded, so the book shows the current active effect instead of the old base dice text.')
+      : doc.example;
+    return `<article class="guideCard${ownedUpgraded ? ' upgraded' : ''}"><div class="guideTop"><div class="guideEmoji">${item.emoji}</div><div><div class="guideName">${escapeHTML(diceGuideName(item, player))} <span class="rarity rarity-${item.rarity}">${escapeHTML(item.rarity)}</span></div><div class="guideMetaLine">$${item.price} • Power tier: ${escapeHTML(item.rarity)}${ownedUpgraded ? ' • upgraded' : ''}</div></div></div><div class="guideDesc">${escapeHTML(detail)}</div><div class="guideExample"><b>Example:</b> ${escapeHTML(example)}</div></article>`;
+  }).join('');
+}
+
+function leaderboardModeLabel(entry){
+  const players = entry.players || (entry.mode === 'multiplayer' ? 2 : 1);
+  return `${players}P • ${entry.targetMode === 'pick' ? 'pick' : 'forced'}`;
+}
+
+function renderLeaderboard(){
+  const key = state.leaderboardTab === 'multiplayer' ? 'multiplayer' : 'single';
+  const entries = (state.leaderboard && state.leaderboard[key]) || [];
+  const top = entries[0];
+
+  if (els.lbSingleBtn) els.lbSingleBtn.classList.toggle('active', key === 'single');
+  if (els.lbMultiBtn) els.lbMultiBtn.classList.toggle('active', key === 'multiplayer');
+
+  if (top) {
+    els.allTimeScore.textContent = top.score || 0;
+    els.allTimeName.textContent = top.name || 'Unknown champion';
+    els.allTimeMeta.textContent = `Online ${key === 'single' ? 'single player' : 'multiplayer'} top 10`;
+  } else if (!state.leaderboardOnline && state.allTimeRecord && state.allTimeRecord.score) {
+    els.allTimeScore.textContent = state.allTimeRecord.score;
+    els.allTimeName.textContent = state.allTimeRecord.name || 'Local champion';
+    els.allTimeMeta.textContent = 'Local fallback while online leaderboard loads';
+  } else {
+    els.allTimeScore.textContent = 0;
+    els.allTimeName.textContent = 'No champion yet';
+    els.allTimeMeta.textContent = state.leaderboardOnline ? `No ${key === 'single' ? 'single player' : 'multiplayer'} scores yet` : 'Loading online leaderboard';
+  }
+
+  if (els.leaderboardStatus) {
+    els.leaderboardStatus.textContent = state.leaderboardSaving
+      ? 'Saving score...'
+      : state.leaderboardOnline
+        ? 'Synced with Vercel Blob.'
+        : 'Online leaderboard unavailable. Local score still works until Blob is configured.';
+  }
+
+  if (!els.leaderboardList) return;
+  if (!entries.length) {
+    els.leaderboardList.innerHTML = `<li><span class="leaderboardRank">–</span><span class="leaderboardWho">No scores yet</span><span class="leaderboardScore">0</span></li>`;
+    return;
+  }
+
+  els.leaderboardList.innerHTML = entries.slice(0, 10).map((entry, index) => {
+    const extra = entry.mode === 'multiplayer' && entry.playerNames && entry.playerNames.length
+      ? `${leaderboardModeLabel(entry)} • ${entry.playerNames.map(escapeHTML).join(' vs ')}`
+      : leaderboardModeLabel(entry);
+    return `<li><span class="leaderboardRank">${index + 1}</span><span class="leaderboardWho">${escapeHTML(entry.name)}</span><span class="leaderboardScore">${entry.score}</span><span class="leaderboardSub">${extra}</span></li>`;
+  }).join('');
+}
+
+function renderAllTime(){
+  renderLeaderboard();
+}
+
+async function loadOnlineLeaderboard(){
+  try {
+    const response = await fetch('/api/leaderboard', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Leaderboard request failed');
+    const data = await response.json();
+    state.leaderboard = {
+      single: Array.isArray(data?.leaderboard?.single) ? data.leaderboard.single : [],
+      multiplayer: Array.isArray(data?.leaderboard?.multiplayer) ? data.leaderboard.multiplayer : []
+    };
+    state.leaderboardOnline = true;
+  } catch (error) {
+    state.leaderboardOnline = false;
+  }
+  renderLeaderboard();
+}
+
+async function submitLeaderboardScores(entries){
+  const cleanEntries = (entries || []).filter(entry => Number(entry.score) > 0);
+  if (!cleanEntries.length) return;
+
+  state.leaderboardSaving = true;
+  renderLeaderboard();
+
+  try {
+    const response = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries: cleanEntries })
+    });
+    if (!response.ok) throw new Error('Save failed');
+    const data = await response.json();
+    if (data?.leaderboard) {
+      state.leaderboard = {
+        single: Array.isArray(data.leaderboard.single) ? data.leaderboard.single : [],
+        multiplayer: Array.isArray(data.leaderboard.multiplayer) ? data.leaderboard.multiplayer : []
+      };
+      state.leaderboardOnline = true;
+    }
+    if (data?.saved) {
+      toast('🏆 Online top 10 updated!', 'Your score was saved to Vercel Blob.');
+    }
+  } catch (error) {
+    state.leaderboardOnline = false;
+    toast('⚠️ Leaderboard not saved', 'Local score still works. Check that your Vercel Blob store is connected.');
+  } finally {
+    state.leaderboardSaving = false;
+    renderLeaderboard();
+  }
+}
+
+function applyLivePlayerNames(renderNow = true){
+  savePlayerNamePrefs();
+  if (!state.players || !state.players.length) return;
+
+  const names = [
+    (els.name1.value || 'Player 1').trim() || 'Player 1',
+    (els.name2.value || 'Player 2').trim() || 'Player 2'
+  ];
+
+  let changed = false;
+  state.players.forEach((player, index) => {
+    if (player && names[index] && player.name !== names[index]) {
+      player.name = names[index];
+      changed = true;
+    }
+  });
+
+  if (changed && renderNow) render();
+}
+
+function renderStats(){
+  const player = activePlayer();
+  const upper = playerUpperTotal(player);
+  const bonus = playerBonus(player);
+  const total = playerTotal(player);
+  els.currentPlayer.textContent = player.name;
+  els.total.textContent = total;
+  els.cash.textContent = `$${player.cash}`;
+  els.round.textContent = `${Math.min(playerRound(player),13)}/13`;
+  els.rolls.textContent = state.rollsLeft;
+  els.upperScore.textContent = upper;
+  els.bonusScore.textContent = bonus + (player.yahtzeeBonus ? ` + ${player.yahtzeeBonus}` : '');
+  els.highScore.textContent = Math.max(state.highScore, ...state.players.map(playerTotal));
+  els.bonusFill.style.width = `${Math.min(100, Math.round(upper/UPPER_BONUS_THRESHOLD*100))}%`;
+  els.bonusText.textContent = `${upper} / ${UPPER_BONUS_THRESHOLD} → +${UPPER_BONUS_POINTS}${bonus ? ' unlocked!' : ''}`;
+  const allHeld = state.hasRolled && state.held.every(Boolean);
+  const hasOpenRow = availableCategories(player).length > 0;
+  const forced = state.targetMode === 'forced';
+  const canBank = state.hasRolled && (state.rollsLeft <= 0 || allHeld) && hasOpenRow;
+  els.rollBtn.disabled = state.rolling || state.scoring || !hasOpenRow;
+  els.rollBtn.textContent = state.rolling
+    ? 'Rolling...'
+    : canBank
+      ? (forced ? 'Bank score 💰' : 'Click row to bank 💰')
+      : state.rollsLeft === 3 ? 'Roll dice ✨' : state.rollsLeft > 0 ? `Roll again (${state.rollsLeft})` : (forced ? 'Bank score 💰' : 'Click row to bank 💰');
+  els.unholdBtn.disabled = state.rolling || !state.held.some(Boolean);
+  els.hint.textContent = forced
+    ? 'Forced mode: only the next category in order can be scored.'
+    : 'Pick mode: roll, then click any unused scorecard row to bank your dice there.';
+}
+
+function render(){
+  renderPlayers();
+  renderTargetSelector(activePlayer());
+  renderDice();
+  renderScoreCards();
+  renderShop();
+  renderStats();
+  renderHeatMeter();
+  renderRollShop();
+  renderAllTime();
+}
+
+function setMoment(icon,title,copy){
+  els.momentIcon.textContent = icon;
+  els.momentTitle.textContent = title;
+  els.momentCopy.textContent = copy;
+}
+function toast(title,copy){
+  const node = document.createElement('div');
+  node.className = 'toast';
+  node.innerHTML = `<strong>${title}</strong><div style="color:var(--muted);font-size:13px;margin-top:3px;line-height:1.35">${copy}</div>`;
+  els.toastStack.appendChild(node);
+  setTimeout(()=>{ node.style.opacity='0'; node.style.transform='translateY(-8px) scale(.98)'; node.style.transition='opacity .25s ease, transform .25s ease'; }, 2600);
+  setTimeout(()=>node.remove(), 2920);
+}
+function floatScore(score,x,y){
+  const node = document.createElement('div');
+  node.className = 'floatScore';
+  node.textContent = score > 0 ? `+${score}` : '0';
+  node.style.left = `${x}px`;
+  node.style.top = `${y}px`;
+  document.body.appendChild(node);
+  setTimeout(()=>node.remove(),1100);
+}
+function burst(x,y,amount=24){
+  const colors = ['#ffd469','#ff62d0','#67ddff','#79ff9b','#9f66ff','#ffffff'];
+  for (let i=0;i<amount;i++) {
+    const p = document.createElement('div');
+    const angle = Math.random()*Math.PI*2;
+    const dist = 50 + Math.random()*150;
+    p.className = 'particle';
+    p.style.left = `${x}px`;
+    p.style.top = `${y}px`;
+    p.style.color = colors[Math.floor(Math.random()*colors.length)];
+    p.style.background = 'currentColor';
+    p.style.setProperty('--x', `${Math.cos(angle)*dist}px`);
+    p.style.setProperty('--y', `${Math.sin(angle)*dist}px`);
+    p.style.animationDuration = `${.55 + Math.random()*.55}s`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),1200);
+  }
+}
+function screenPop(){
+  const pop = document.createElement('div');
+  pop.className = 'pop';
+  document.body.appendChild(pop);
+  setTimeout(()=>pop.remove(), 600);
+}
+function pulseUsedDice(itemIds = []){
+  const unique = [...new Set(itemIds)].filter(Boolean);
+  if (!unique.length) return 0;
+  unique.forEach((id,idx) => {
+    const safe = CSS && CSS.escape ? CSS.escape(id) : id.replace(/[^a-zA-Z0-9_-]/g,'');
+    const nodes = [...els.inventory.querySelectorAll(`.slot.owned[data-item-id="${safe}"]`)];
+    nodes.forEach(node => {
+      setTimeout(() => {
+        node.classList.remove('usedPulse');
+        void node.offsetWidth;
+        node.classList.add('usedPulse');
+        setTimeout(()=>node.classList.remove('usedPulse'), 900);
+      }, idx * 90);
+    });
+  });
+  return 520 + unique.length * 90;
+}
+
+function playActiveDiceTicks(itemIds = [], multiplier = 1){
+  const unique = [...new Set(itemIds)].filter(Boolean);
+  if (!unique.length) return 0;
+  unique.forEach((id, idx) => {
+    const pitch = 390 + idx * 82 + Math.max(0, multiplier - 1) * 55;
+    const delay = idx * .105;
+    tone(pitch, .075, 'triangle', .055, delay);
+    tone(pitch * 1.5, .06, 'sine', .026, delay + .035);
+  });
+  if (unique.length >= 3 || multiplier >= 3) {
+    const finalDelay = unique.length * .105 + .05;
+    tone(980 + unique.length * 55, .16, 'sawtooth', .045, finalDelay);
+    tone(1310 + multiplier * 55, .18, 'triangle', .038, finalDelay + .07);
+  }
+  return Math.round(520 + unique.length * 125);
+}
+function showBadDiceCallout(amount){
+  if (!amount) return;
+  document.querySelectorAll('.badDiceCallout').forEach(el => el.remove());
+  const box = document.createElement('div');
+  box.className = 'badDiceCallout';
+  box.innerHTML = `<div class="badDiceEmoji">🪦</div><div class="badDiceKicker">Bad dice activated</div><div class="badDiceBig">-${amount} points</div><div class="badDiceCopy">WOG stole ${amount} point${amount===1?'':'s'} from this bank.</div>`;
+  document.body.appendChild(box);
+  setTimeout(()=>{ box.style.transition='opacity .34s ease, transform .34s ease'; box.style.opacity='0'; box.style.transform='translate(-50%,-62%) scale(.94)'; }, 1650);
+  setTimeout(()=>box.remove(), 2100);
+}
+
+function showDiceRewardStep(itemId, index, total, multiplier = 1){
+  const player = activePlayer();
+  const item = shopItems.find(it => it.id === itemId) || { emoji: itemId === 'rollshop_cash' ? '💸' : '🎲', name: itemId === 'rollshop_cash' ? 'Cash-to-score' : (itemId || 'Bonus Dice') };
+  const hot = index >= 2 || multiplier >= 3 || total >= 4;
+  const node = document.createElement('div');
+  node.className = 'diceRewardStep' + (hot ? ' hot' : '');
+  node.innerHTML = `<div class="diceRewardCount">bonus ${index + 1} / ${total}</div><div class="diceRewardEmoji">${item.emoji}</div><div class="diceRewardName">${displayItemName(player,item)}</div><div class="diceRewardCopy">${multiplier > 1 ? `target heat x${multiplier}` : 'bonus triggered'}</div>`;
+  document.body.appendChild(node);
+  const x = window.innerWidth / 2;
+  const y = window.innerHeight * .44;
+  burst(x, y, Math.min(62, 18 + index * 8 + (hot ? 12 : 0)));
+  if (hot && index === total - 1) screenPop();
+  vibrate(index === total - 1 ? [18,22,34] : 18);
+  const pitch = 410 + index * 112 + Math.max(0, multiplier - 1) * 42;
+  tone(80 + index * 12, .055, 'sine', .045);
+  tone(pitch, .13, 'triangle', .075, .025);
+  tone(pitch * 1.48, .08, 'sine', .038, .10);
+  noise(.035, .018, .018);
+  setTimeout(()=>node.remove(), 760);
+}
+function pulseOneOwnedDice(itemId){
+  const safe = window.CSS && CSS.escape ? CSS.escape(itemId) : String(itemId).replace(/[^a-zA-Z0-9_-]/g,'');
+  const nodes = [...els.inventory.querySelectorAll(`.slot.owned[data-item-id="${safe}"]`)];
+  nodes.forEach(node => {
+    node.classList.remove('usedPulse','chainFocus');
+    void node.offsetWidth;
+    node.classList.add('usedPulse','chainFocus');
+    setTimeout(()=>node.classList.remove('usedPulse','chainFocus'), 760);
+  });
+}
+function playActiveDiceRewardChain(itemIds = [], multiplier = 1, score = 0){
+  const unique = [...new Set(itemIds)].filter(Boolean);
+  if (!unique.length) {
+    if (multiplier > 1) {
+      showComboFire([], multiplier, score);
+      tone(520 + multiplier * 55, .12, 'triangle', .055);
+      tone(780 + multiplier * 70, .16, 'sine', .04, .08);
+      return 1150;
+    }
+    return 0;
+  }
+  const stepMs = 520;
+  unique.forEach((id, idx) => {
+    setTimeout(() => {
+      pulseOneOwnedDice(id);
+      showDiceRewardStep(id, idx, unique.length, multiplier);
+    }, idx * stepMs);
+  });
+  const comboDelay = unique.length * stepMs + 120;
+  setTimeout(() => {
+    showComboFire(unique, multiplier, score);
+    const finishPitch = 900 + unique.length * 70 + Math.max(0, multiplier - 1) * 60;
+    tone(finishPitch, .18, 'sawtooth', .05);
+    tone(finishPitch * 1.28, .2, 'triangle', .042, .09);
+  }, comboDelay);
+  return comboDelay + 1250;
+}
+function showComboFire(itemIds = [], multiplier = 1, score = 0){
+  const unique = [...new Set(itemIds)].filter(Boolean);
+  if (!unique.length && multiplier <= 1) return;
+  const node = document.createElement('div');
+  const fire = multiplier >= 3 || unique.length >= 3 || score >= 80;
+  node.className = 'comboTicker' + (fire ? ' fire' : '');
+  const tickHtml = unique.slice(0,6).map(() => '<span class="comboTick"></span>').join('');
+  node.innerHTML = `<div class="comboKicker">${fire ? '🔥 bonus chain ignited' : 'bonus chain'}</div><div class="comboBig">x${multiplier || 1}</div><div class="comboSub">${unique.length} active dice used${score ? ` • bank ${score}` : ''}</div><div class="comboTicks">${tickHtml}</div>`;
+  document.body.appendChild(node);
+  const x = window.innerWidth / 2;
+  const y = window.innerHeight * .38;
+  burst(x, y, Math.min(100, 16 + unique.length * 10 + (fire ? 30 : 0)));
+  if (fire) screenPop();
+  setTimeout(()=>node.remove(), 1200);
+}
+function showHeatScoreStep(multiplier, baseScore, shownScore, finalStep){
+  const node = document.createElement('div');
+  node.className = 'comboTicker fire';
+  const tickHtml = Array.from({length: Math.max(1, multiplier)}).slice(0,6).map(() => '<span class="comboTick"></span>').join('');
+  node.innerHTML = `<div class="comboKicker">🔥 target heat scoring</div><div class="comboBig">x${multiplier}</div><div class="comboSub">${baseScore} → ${shownScore}${finalStep ? ' • MAX HEAT!' : ''}</div><div class="comboTicks">${tickHtml}</div>`;
+  document.body.appendChild(node);
+  const x = window.innerWidth / 2;
+  const y = window.innerHeight * .38;
+  burst(x, y, Math.min(110, 28 + multiplier * 13));
+  tone(360 + multiplier * 95, .13, 'triangle', .064);
+  tone(540 + multiplier * 125, .15, 'sine', .045, .055);
+  noise(.035, .018, .035);
+  if (multiplier >= 4 || finalStep) screenPop();
+  vibrate(multiplier >= 5 ? [20,30,55] : 18);
+  setTimeout(()=>node.remove(), 760);
+}
+function playHeatMultiplierReward(multiplier = 1, baseScore = 0, multipliedScore = 0){
+  multiplier = Math.max(1, Math.min(5, Number(multiplier) || 1));
+  if (multiplier <= 1 || !baseScore) return 0;
+  const steps = [];
+  for (let m=2; m<=multiplier; m++) steps.push(m);
+  const stepMs = 470;
+  steps.forEach((m, idx) => {
+    setTimeout(() => showHeatScoreStep(m, baseScore, baseScore * m, idx === steps.length - 1 && multiplier >= 5), idx * stepMs);
+  });
+  return steps.length * stepMs + 450;
+}
+function showUpperBonusCelebration(){
+  const node = document.createElement('div');
+  node.className = 'comboTicker fire';
+  node.innerHTML = `<div class="comboKicker">🏆 top bracket complete</div><div class="comboBig">+${UPPER_BONUS_POINTS}</div><div class="comboSub">Upper bonus unlocked at ${UPPER_BONUS_THRESHOLD}</div><div class="comboTicks"><span class="comboTick"></span><span class="comboTick"></span><span class="comboTick"></span><span class="comboTick"></span><span class="comboTick"></span></div>`;
+  document.body.appendChild(node);
+  [523,659,784,1047,1319,1568].forEach((f,i)=>tone(f,.16,i%2?'triangle':'sawtooth',.06,i*.07));
+  for (let i=0;i<12;i++) noise(.04,.02,i*.045);
+  burst(window.innerWidth/2, window.innerHeight*.33, 110);
+  screenPop();
+  vibrate([30,40,70,35,90]);
+  setTimeout(()=>node.remove(), 1300);
+}
+function activeDiceRewardChainDuration(itemIds = []){
+  const unique = [...new Set(itemIds)].filter(Boolean);
+  return unique.length ? unique.length * 520 + 1370 : 0;
+}
+function logLine(html){
+  shopLogLines.unshift(html);
+  if (shopLogLines.length > 8) shopLogLines.pop();
+  els.shopLog.innerHTML = '<b>Shop log:</b><br>' + shopLogLines.join('<br>');
+}
+function showTurnBanner(player){
+  if (!player) return;
+  els.turnBannerName.textContent = player.name;
+  els.turnBannerSub.textContent = state.targetMode === 'forced' ? 'Forced target: ' + (findCategory(currentTarget(player))?.name || 'Done') : 'Roll, then click a score row';
+  els.turnBanner.classList.remove('show');
+  void els.turnBanner.offsetWidth;
+  els.turnBanner.classList.add('show');
+  setTimeout(()=>els.turnBanner.classList.remove('show'), 1350);
+}
+
+function randomDie(){ return Math.floor(Math.random()*6) + 1; }
+
+function evaluateRollMoment(){
+  const dice = state.dice;
+  const c = counts(dice);
+  const values = Object.values(c);
+  const total = sumDice(dice);
+  if (isYahtzee(dice)) {
+    setMoment('💎','YAHTZEE energy!','All matching. The shop is drooling.');
+    sfx.big(); burst(window.innerWidth/2,220,72); screenPop(); vibrate([25,40,55]);
+  } else if (hasStraight(5,dice)) {
+    setMoment('🚀','Large straight!','Clean, elegant, and glowing.');
+    sfx.score(40); burst(window.innerWidth/2,230,36);
+  } else if (values.includes(4)) {
+    setMoment('🔥','Four of a kind!','That target suddenly looks very realistic.');
+    sfx.score(30); burst(window.innerWidth/2,230,28);
+  } else if (values.includes(3) && values.includes(2)) {
+    setMoment('🏠','Full house!','Cozy little point mansion.');
+    sfx.score(25); burst(window.innerWidth/2,230,28);
+  } else if (total >= 24) {
+    setMoment('✨','Strong roll!','The highlighted dice are your friends.');
+    sfx.score(total);
+  } else {
+    setMoment('🎯','Keep shaping it','Hold the useful dice and reroll the rest.');
+  }
+}
+
+function shouldAutoBankForcedYahtzee(){
+  const player = activePlayer();
+  return state.targetMode === 'forced' && state.hasRolled && !state.rolling && !state.scoring && isYahtzee(state.dice) && !isUsed(player,'yahtzee');
+}
+function scheduleForcedYahtzeeAutoBank(){
+  if (!shouldAutoBankForcedYahtzee()) return;
+  toast('💥 Yahtzee auto-bank incoming!', 'Forced mode will bank this directly into the Yahtzee row. No manual click needed.');
+  setMoment('💥','Auto-banking Yahtzee','Forced mode found five matching dice. The Yahtzee slot is getting slammed automatically.');
+  setTimeout(()=>{
+    if (shouldAutoBankForcedYahtzee()) bankTarget();
+  }, 650);
+}
+
+function bankTarget(){
+  if (!state.hasRolled || state.rolling || state.scoring) return;
+  if (state.targetMode !== 'forced') {
+    toast('Click a score row', 'Pick mode now banks by clicking the row you want: Ones, Twos, Full House, Chance, etc.');
+    setMoment('👆','Choose the row','Click any unused scorecard row to bank the current dice there.');
+    return;
+  }
+  const player = activePlayer();
+  const autoYahtzee = isYahtzee(state.dice) && !isUsed(player,'yahtzee');
+  const target = autoYahtzee ? 'yahtzee' : currentTarget();
+  if (!target) return;
+  const targetButton = document.querySelector(`.category[data-cat="${target}"]`) || [...document.querySelectorAll('.category.target')].find(btn => !btn.disabled) || els.rollBtn;
+  if (autoYahtzee) {
+    toast('💥 Auto-Yahtzee!', 'Forced mode always slams a Yahtzee into the Yahtzee slot if it is still open.');
+    setMoment('💥','Forced Yahtzee override','You rolled a Yahtzee, so it is being banked in the Yahtzee row automatically.');
+  }
+  scoreTarget(target, targetButton);
+}
+
+function rollDice(){
+  if (state.rolling || state.scoring || availableCategories(activePlayer()).length === 0) return;
+  if (state.hasRolled && state.held.every(Boolean)) { bankTarget(); return; }
+  if (state.rollsLeft <= 0) { bankTarget(); return; }
+  ensureAudio();
+  state.heatFloor = currentHeatInfo();
+  state.rolling = true;
+  state.hasRolled = true;
+  state.rollsLeft -= 1;
+  els.diceRail.classList.add('rolling');
+  sfx.roll(); vibrate(18);
+  setMoment('🎲','Dice are flying...','The animation is juicier now, with staggered tumbling.');
+  render();
+  let ticks = 0;
+  const maxTicks = 15;
+  const interval = setInterval(()=>{
+    ticks += 1;
+    state.dice = state.dice.map((value,i)=> state.held[i] ? value : randomDie());
+    renderDice();
+    if (ticks >= maxTicks) {
+      clearInterval(interval);
+      state.rolling = false;
+      state.heatFloor = null;
+      els.diceRail.classList.remove('rolling');
+      evaluateRollMoment();
+      render();
+      scheduleForcedYahtzeeAutoBank();
+    }
+  }, 55);
+}
+
+function toggleHold(index){
+  if (!state.hasRolled || state.rolling || state.scoring) return;
+  ensureAudio();
+  state.held[index] = !state.held[index];
+  state.held[index] ? sfx.hold() : sfx.unhold();
+  state.brainFreezeArmed = state.rollsLeft === 1 && state.held.every(Boolean);
+  if (state.brainFreezeArmed && has(activePlayer(),'brainfreeze')) {
+    setMoment('🧊','Brain Freeze armed','All 5 dice are frozen before the final throw. Bank now to gain +20.');
+    toast('🧊 Brain Freeze armed','You held all dice with 1 roll left. This will count when you bank.');
+    sfx.buy();
+  }
+  vibrate(10);
+  render();
+}
+
+function clearHolds(){
+  if (state.rolling) return;
+  ensureAudio();
+  state.held = [false,false,false,false,false];
+  state.brainFreezeArmed = false;
+  sfx.unhold();
+  setMoment('🖐️','All dice released','Nothing held. Try a fresh angle.');
+  render();
+}
+
+
+function normalizeSellSelection(player){
+  if (!player.inv.length) {
+    player.selectedSellIndex = null;
+    return null;
+  }
+  if (!Number.isInteger(player.selectedSellIndex) || player.selectedSellIndex < 0 || player.selectedSellIndex >= player.inv.length) {
+    player.selectedSellIndex = player.inv.length - 1;
+  }
+  return player.selectedSellIndex;
+}
+
+function getSellRefund(player, index = normalizeSellSelection(player)){
+  if (index === null || index === undefined || !player.inv.length) return null;
+  const id = player.inv[index];
+  const item = shopItems.find(it=>it.id===id);
+  if (!item) return null;
+  const paid = player.paid[id] ?? shopPrice(player,item);
+  const refund = Math.max(0, Math.min(paid - 1, Math.floor(paid * 0.55)));
+  return { index, id, item, paid, refund };
+}
+
+function buyItem(itemId, btn){
+  const player = activePlayer();
+  const item = shopItems.find(it=>it.id===itemId);
+  const cost = shopPrice(player,item);
+  if (!item || player.cash < cost || player.inv.length >= 6) return;
+  ensureAudio();
+  player.cash -= cost;
+  player.inv.push(itemId);
+  player.selectedSellIndex = player.inv.length - 1;
+  player.paid[itemId] = cost;
+  player.stock = player.stock.filter(id => id !== itemId);
+  logLine(`Bought <b>${item.emoji} ${item.name}</b> for $${cost}. Effects apply to future scores only.`);
+  toast(`${item.emoji} ${item.name} bought!`, `${displayItemDesc(player,item)} Applies from your next scored turn, not retroactively.`);
+  sfx.buy();
+  const rect = btn.getBoundingClientRect();
+  burst(rect.left+30, rect.top+30, 34);
+  render();
+}
+
+function scoreTarget(catId, button){
+  const player = activePlayer();
+  const forced = state.targetMode === 'forced';
+  const forcedAutoYahtzee = forced && catId === 'yahtzee' && isYahtzee(state.dice) && !isUsed(player,'yahtzee');
+  if (state.scoring || !state.hasRolled || state.rolling || isUsed(player, catId) || (forced && currentTarget(player) !== catId && !forcedAutoYahtzee)) return;
+  state.hoverTarget = catId;
+  ensureAudio();
+  state.scoring = true;
+  const hadBonus = playerBonus(player) > 0;
+  const result = effectScore(player,catId,{preview:false});
+  if (result.usedItems && result.usedItems.includes('mousetrap')) player.mousetrapUsed = true;
+  let score = result.score;
+  if (isYahtzee(result.dice) && player.scores.yahtzee === 50 && catId !== 'yahtzee') {
+    player.yahtzeeBonus += 100;
+    result.money += 25;
+    result.notes.push('Extra Yahtzee +100 +$25');
+  }
+  player.scores[catId] = score;
+  const baseCash = score > 0 ? Math.max(14, Math.floor(score*.75) + 8) : 0;
+  const earned = baseCash + result.money;
+  player.cash += earned;
+  player.lastTurn = { catId, name: findCategory(catId).name, score, earned };
+  const rect = button.getBoundingClientRect();
+  const rolledYahtzee = isYahtzee(result.dice);
+  floatScore(score, rect.right - 35, rect.top + rect.height/2);
+  burst(rect.right - 35, rect.top + rect.height/2, score >= 70 ? 70 : score >= 35 ? 38 : 18);
+  const activeBankDice = [...new Set(result.usedItems || [])].filter(Boolean);
+  if (!activeBankDice.length) {
+    if (score >= 80 || catId === 'yahtzee' || rolledYahtzee) { sfx.big(); screenPop(); } else { sfx.score(score); }
+  } else {
+    tone(230, .07, 'triangle', .035);
+    tone(310, .08, 'sine', .025, .045);
+  }
+  if (result.wogPenaltyLost) {
+    setTimeout(()=>{ sfx.bad(); showBadDiceCallout(result.wogPenaltyLost); vibrate([80,30,80]); }, 120);
+  }
+  if (rolledYahtzee) showYahtzeeStorm();
+  toast(score > 0 ? `+${score} score • +$${earned}` : `0 score • +$${earned}`, `${findCategory(catId).name}${result.notes.length ? ' — ' + result.notes.join(', ') : ''}`);
+  logLine(`<b>${player.name}</b> scored <b>${findCategory(catId).name}</b> for +${score}, earned $${earned}. ${result.notes.join(' · ') || 'No bonus dice.'}`);
+  state.turnsScored += 1;
+
+  const heatAnimationDelay = playHeatMultiplierReward(result.targetMultiplier || 1, result.preMultiplierScore || 0, result.multipliedScore || 0);
+  let animationDelay = heatAnimationDelay;
+  if (activeBankDice.length) {
+    const diceChainStart = heatAnimationDelay ? Math.max(0, heatAnimationDelay - 180) : 0;
+    setTimeout(() => playActiveDiceRewardChain(activeBankDice, result.targetMultiplier || 1, score), diceChainStart);
+    animationDelay = Math.max(animationDelay, diceChainStart + activeDiceRewardChainDuration(activeBankDice));
+  }
+
+  if (!hadBonus && playerBonus(player)) {
+    setTimeout(()=>{ toast('🏆 Upper bonus unlocked!',`+${UPPER_BONUS_POINTS} points. Top bracket complete.`); showUpperBonusCelebration(); }, Math.max(320, Math.min(animationDelay || 320, 900)));
+  }
+
+  refreshShop(player);
+
+  const advance = () => {
+    state.scoring = false;
+    if (allPlayersFinished()) finishGame();
+    else nextTurn();
+  };
+  const finalAdvanceDelay = rolledYahtzee ? Math.max(animationDelay || 0, 3000) : animationDelay;
+  if (finalAdvanceDelay) setTimeout(advance, finalAdvanceDelay);
+  else advance();
+}
+
+function allPlayersFinished(){
+  return state.players.every(player => Object.keys(player.scores).length >= categories.length);
+}
+
+function syncTargetForPlayer(){
+  const player = activePlayer();
+  if (state.targetMode === 'pick') {
+    if (!player.selectedTarget || isUsed(player,player.selectedTarget)) {
+      player.selectedTarget = availableCategories(player)[0]?.id || null;
+    }
+  }
+}
+
+function nextTurn(){
+  state.dice = [1,1,1,1,1];
+  state.held = [false,false,false,false,false];
+  state.rollsLeft = 3;
+  state.hasRolled = false;
+  state.rolling = false;
+  state.hoverTarget = null;
+  state.shopRerollsThisTurn = 0;
+  state.brainFreezeArmed = false;
+  state.heatFloor = null;
+  let nextIndex = state.activePlayerIndex;
+  for (let step=0; step<state.players.length; step++) {
+    nextIndex = (nextIndex + 1) % state.players.length;
+    if (Object.keys(state.players[nextIndex].scores).length < categories.length) break;
+  }
+  state.activePlayerIndex = nextIndex;
+  syncTargetForPlayer();
+  const player = activePlayer();
+  setMoment('🛒','Next turn ready', `${player.name}, pick up the dice. Shop refreshed for you.`);
+  render();
+  showTurnBanner(player);
+}
+
+function finishGame(){
+  applyLivePlayerNames(false);
+  const ranking = [...state.players].sort((a,b)=>playerTotal(b)-playerTotal(a));
+  const best = ranking[0];
+  const bestScore = playerTotal(best);
+
+  const leaderboardEntries = state.players.map((player, index) => ({
+    name: player.name,
+    score: playerTotal(player),
+    mode: state.playerCount >= 2 ? 'multiplayer' : 'single',
+    players: state.playerCount,
+    playerIndex: index + 1,
+    playerNames: state.players.map(p => p.name),
+    targetMode: state.targetMode
+  }));
+  submitLeaderboardScores(leaderboardEntries);
+
+  if (bestScore > state.allTimeRecord.score) {
+    state.allTimeRecord = {
+      name: best.name,
+      score: bestScore,
+      date: new Date().toISOString(),
+      players: state.playerCount,
+      mode: state.targetMode
+    };
+    state.highScore = bestScore;
+    saveAllTimeRecord(state.allTimeRecord);
+    toast('👑 New local all-time top score!', `${best.name} now holds the local record with ${bestScore}.`);
+  }
+  els.endTitle.textContent = state.playerCount === 1 ? 'Game over!' : `${best.name} wins!`;
+  els.finalScore.textContent = bestScore;
+  const rankingText = ranking.map((p,i)=>`${i+1}. ${p.name}: ${playerTotal(p)}`).join(' • ');
+  els.finalCopy.textContent = `${rankingText} • Online leaderboard saves the top 10 single-player and multiplayer scores.`;
+  els.endModal.classList.add('show');
+  sfx.big(); burst(window.innerWidth/2,220,110); screenPop();
+  render();
+}
+
+function resetGame(){
+  savePlayerNamePrefs();
+  state.playerCount = Number(els.playerCount.value);
+  state.targetMode = els.targetMode.value || 'forced';
+  state.activePlayerIndex = 0;
+  state.dice = [1,1,1,1,1];
+  state.held = [false,false,false,false,false];
+  state.rollsLeft = 3;
+  state.hasRolled = false;
+  state.rolling = false;
+  state.hoverTarget = null;
+  state.scoring = false;
+  state.turnsScored = 0;
+  state.shopRerollsThisTurn = 0;
+  state.brainFreezeArmed = false;
+  shopLogLines.length = 0;
+  const name1 = els.name1.value.trim() || 'Player 1';
+  const name2 = els.name2.value.trim() || 'Player 2';
+  state.players = [createPlayer(name1)];
+  if (state.playerCount === 2) state.players.push(createPlayer(name2));
+  state.players.forEach(player => refreshShop(player));
+  syncTargetForPlayer();
+  setMoment('🎯','Target mode ready', state.targetMode === 'forced' ? 'Forced order starts at Ones and marches down the card.' : 'Roll first, then click any unused score row to bank there.');
+  logLine(`New game started: <b>${state.playerCount}</b> player${state.playerCount>1?'s':''}, <b>${state.targetMode}</b> mode. All <b>${shopItems.length}</b> dice are in the loot pool. Rare odds improve as the round number climbs.`);
+  els.endModal.classList.remove('show');
+  render();
+  showTurnBanner(activePlayer());
+}
+
+function showStandings(){
+  const ranking = [...state.players].sort((a,b)=>playerTotal(b)-playerTotal(a));
+  els.endTitle.textContent = 'Standings';
+  els.finalScore.textContent = ranking.length ? playerTotal(ranking[0]) : 0;
+  els.finalCopy.textContent = ranking.map((p,i)=>`${i+1}. ${p.name}: ${playerTotal(p)} • $${p.cash}`).join(' • ');
+  els.endModal.classList.add('show');
+}
+
+els.rollBtn.onclick = rollDice;
+els.unholdBtn.onclick = clearHolds;
+els.dice.forEach((die,i)=>die.onclick = () => toggleHold(i));
+if (els.targetSelect) els.targetSelect.onchange = () => {}; // picker removed; score by clicking a row
+setupSoundButtonLongPress();
+els.rulesBtn.onclick = () => els.rulesModal.classList.add('show');
+els.closeRulesBtn.onclick = () => els.rulesModal.classList.remove('show');
+els.rulesModal.onclick = e => { if (e.target === els.rulesModal) els.rulesModal.classList.remove('show'); };
+els.newBtn.onclick = () => { ensureAudio(); resetGame(); sfx.buy(); };
+els.playAgainBtn.onclick = () => { ensureAudio(); resetGame(); sfx.buy(); };
+els.closeEndBtn.onclick = () => els.endModal.classList.remove('show');
+els.endModal.onclick = e => { if (e.target === els.endModal) els.endModal.classList.remove('show'); };
+els.showWinnerBtn.onclick = showStandings;
+if (els.lbSingleBtn) els.lbSingleBtn.onclick = () => { state.leaderboardTab = 'single'; renderLeaderboard(); };
+if (els.lbMultiBtn) els.lbMultiBtn.onclick = () => { state.leaderboardTab = 'multiplayer'; renderLeaderboard(); };
+els.playerCount.onchange = () => {
+  const twoPlayer = Number(els.playerCount.value) === 2;
+  els.name2.parentElement.style.display = twoPlayer ? 'flex' : 'none';
+  if (twoPlayer && !els.name2.value.trim()) els.name2.value = localStorage.getItem(NAME_KEYS.p2) || 'Player 2';
+  savePlayerNamePrefs();
+  applyLivePlayerNames(false);
+};
+els.name1.addEventListener('input', () => applyLivePlayerNames(true));
+els.name2.addEventListener('input', () => applyLivePlayerNames(true));
+els.targetMode.addEventListener('change', () => { render(); });
+els.rerollShopBtn.onclick = () => {
+  const player = activePlayer();
+  const cost = currentRerollCost();
+  if (player.cash < cost) return;
+  ensureAudio();
+  player.cash -= cost;
+  state.shopRerollsThisTurn += 1;
+  refreshShop(player);
+  const nextCost = currentRerollCost();
+  logLine(`<b>${player.name}</b> rerolled the shop for <b>$${cost}</b>. Next reroll this turn costs $${nextCost}.`);
+  setMoment('🔁','Shop rerolled', `Paid $${cost}. Next reroll this turn costs $${nextCost}. It resets to $5 on the next turn.`);
+  sfx.roll();
+  render();
+};
+
+function chooseRerollOneDieIndex(){
+  const target = state.targetMode === 'forced' ? currentTarget(activePlayer()) : (state.hoverTarget || currentTarget(activePlayer()));
+  const matches = new Set(matchingIndices(target));
+  let candidates = state.dice.map((_,i)=>i).filter(i=>!state.held[i]);
+  if (!candidates.length) candidates = state.dice.map((_,i)=>i);
+  const bad = candidates.filter(i=>!matches.has(i));
+  const pool = bad.length ? bad : candidates;
+  return pool.sort((a,b)=>state.dice[a]-state.dice[b])[0];
+}
+function rollShopBurst(btn, icon='✨'){
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const node = document.createElement('div');
+  node.className = 'upgradeSpark';
+  node.textContent = icon;
+  node.style.left = `${rect.left + rect.width/2}px`;
+  node.style.top = `${rect.top + 20}px`;
+  document.body.appendChild(node);
+  setTimeout(()=>node.remove(), 950);
+  burst(rect.left + rect.width/2, rect.top + rect.height/2, 30);
+}
+if (els.rollShopRerollDieBtn) els.rollShopRerollDieBtn.onclick = () => {
+  const player = activePlayer();
+  const cost = rollShopCost(player,'rerollDie');
+  if (player.cash < cost || !state.hasRolled || state.rolling || state.scoring) return;
+  ensureAudio();
+  player.cash -= cost;
+  const idx = chooseRerollOneDieIndex();
+  const old = state.dice[idx];
+  let next = old;
+  for (let i=0;i<8 && next === old;i++) next = randomDie();
+  state.dice[idx] = next;
+  state.held[idx] = false;
+  logLine(`<b>${player.name}</b> bought a one-die reroll for <b>$${cost}</b>: die ${idx+1} ${old} → ${next}.`);
+  setMoment('🎲','One die rerolled',`Die ${idx+1}: ${old} → ${next}. It picked an unheld die that was not helping the target when possible.`);
+  sfx.roll(); rollShopBurst(els.rollShopRerollDieBtn,'🎲'); vibrate(20); render(); scheduleForcedYahtzeeAutoBank();
+};
+if (els.rollShopCashScoreBtn) els.rollShopCashScoreBtn.onclick = () => {
+  const player = activePlayer();
+  const cost = rollShopCost(player,'cashScore');
+  if (player.cash < cost || state.rolling || state.scoring) return;
+  ensureAudio();
+  player.cash -= cost;
+  player.cashScoreRanks = (player.cashScoreRanks || 0) + 1;
+  logLine(`<b>${player.name}</b> bought Cash-to-score rank <b>${player.cashScoreRanks}</b> for <b>$${cost}</b>.`);
+  setMoment('💸','Cash-to-score upgraded',`Every future bank adds ${player.cashScoreRanks * 10}% of your current cash balance to score before heat.`);
+  sfx.buy(); rollShopBurst(els.rollShopCashScoreBtn,'💸'); render();
+};
+if (els.rollShopExtraRollBtn) els.rollShopExtraRollBtn.onclick = () => {
+  const player = activePlayer();
+  const cost = rollShopCost(player,'extraRoll');
+  if (player.cash < cost || !state.hasRolled || state.rolling || state.scoring) return;
+  ensureAudio();
+  player.cash -= cost;
+  state.rollsLeft += 1;
+  logLine(`<b>${player.name}</b> bought an extra roll for <b>$${cost}</b>. Rolls left: <b>${state.rollsLeft}</b>.`);
+  setMoment('➕','Extra roll bought',`You now have ${state.rollsLeft} roll${state.rollsLeft===1?'':'s'} left. Held dice will stay held.`);
+  sfx.buy(); rollShopBurst(els.rollShopExtraRollBtn,'➕'); render();
+};
+if (els.upgradeDiceBtn) els.upgradeDiceBtn.onclick = () => {
+  const player = activePlayer();
+  const selected = selectedOwnedDice(player);
+  const cost = rollShopCost(player,'upgradeDice');
+  if (!selected || player.cash < cost || isUpgraded(player, selected.id) || state.rolling || state.scoring) return;
+  ensureAudio();
+  player.cash -= cost;
+  player.upgrades[selected.id] = true;
+  const newName = displayItemName(player, selected.item);
+  logLine(`<b>${player.name}</b> upgraded <b>${selected.item.emoji} ${newName}</b> for <b>$${cost}</b>. ${displayUpgradeHint(selected.item) || ''}`);
+  setMoment(selected.item.emoji, `${newName} upgraded!`, displayUpgradeHint(selected.item) || 'This dice now has a stronger smart payoff.');
+  toast(`${selected.item.emoji} ${newName} upgraded!`, selected.id === 'wog' ? 'The cursed WOG has become WOW. It is now crazy good.' : (displayUpgradeHint(selected.item) || 'Upgraded dice now hit harder.'));
+  sfx.big(); screenPop(); rollShopBurst(els.upgradeDiceBtn, selected.id === 'wog' ? 'WOW' : '✨'); render();
+};
+
+els.sellLastBtn.onclick = () => {
+  const player = activePlayer();
+  const sale = getSellRefund(player);
+  if (!sale) return;
+  ensureAudio();
+  player.inv.splice(sale.index, 1);
+  delete player.paid[sale.id];
+  if (player.upgrades) delete player.upgrades[sale.id];
+  player.cash += sale.refund;
+  player.selectedSellIndex = player.inv.length ? Math.min(sale.index, player.inv.length - 1) : null;
+  logLine(`<b>${player.name}</b> sold <b>${sale.item.emoji} ${displayItemName(player, sale.item)}</b> for $${sale.refund}. Bought for $${sale.paid}. Shop stock stays the same.`);
+  toast('Sold selected dice', `Sold ${sale.item.name} for +$${sale.refund}. Sell price is always lower than what you paid.`);
+  sfx.score(sale.refund);
+  render();
+};
+
+
+els.diceGuideBtn.onclick = () => { renderDiceGuide(); els.diceGuideModal.classList.add('show'); };
+els.closeDiceGuideBtn.onclick = () => els.diceGuideModal.classList.remove('show');
+els.diceGuideModal.onclick = e => { if (e.target === els.diceGuideModal) els.diceGuideModal.classList.remove('show'); };
+
+if (els.openMusicFileBtn && els.musicFileInput) {
+  els.openMusicFileBtn.onclick = () => els.musicFileInput.click();
+  els.musicFileInput.onchange = event => loadManualMusicFiles(event.target.files);
+}
+if (els.musicPlayPauseBtn) els.musicPlayPauseBtn.onclick = toggleMusicPlayPause;
+if (els.musicPrevBtn) els.musicPrevBtn.onclick = () => { if (state.musicTracks.length) { loadMusicTrack(state.musicIndex - 1); tryPlayMusic('previous track'); } };
+if (els.musicNextBtn) els.musicNextBtn.onclick = () => { if (state.musicTracks.length) nextMusicTrack(); };
+if (els.closeMusicModalBtn) els.closeMusicModalBtn.onclick = closeMusicModal;
+if (els.musicModal) els.musicModal.onclick = e => { if (e.target === els.musicModal) closeMusicModal(); };
+
+window.addEventListener('keydown', e => {
+  if ((e.key === ' ' || e.key === 'Enter') && document.activeElement?.tagName !== 'BUTTON' && document.activeElement?.tagName !== 'SELECT' && document.activeElement?.tagName !== 'INPUT') {
+    e.preventDefault();
+    rollDice();
+  }
+  if (['1','2','3','4','5'].includes(e.key)) toggleHold(Number(e.key)-1);
+  if (e.key === 'Escape') { els.rulesModal.classList.remove('show'); els.endModal.classList.remove('show'); els.diceGuideModal.classList.remove('show'); closeMusicModal(); }
+});
+
+if (els.musicPlayer) {
+  els.musicPlayer.addEventListener('ended', nextMusicTrack);
+  els.musicPlayer.addEventListener('error', () => {
+    if (state.musicTracks.length > 1) nextMusicTrack();
+    else setMusicStatus('Music error', 'Could not play this MP3. Try another file in the mp3 folder.');
+  });
+}
+updateAudioButton();
+armMusicAutoplay();
+discoverMusicTracks();
+loadPlayerNamePrefs();
+els.targetMode.value = 'forced';
+els.playerCount.dispatchEvent(new Event('change'));
+resetGame();
+loadOnlineLeaderboard();
+</script>
+</body>
+</html>

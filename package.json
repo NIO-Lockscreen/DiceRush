@@ -1,0 +1,16 @@
+{
+  "name": "dice-rush-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@vercel/blob": "latest"
+  },
+  "devDependencies": {
+    "@vercel/node": "latest"
+  }
+}
