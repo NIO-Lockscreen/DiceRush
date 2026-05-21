@@ -167,13 +167,18 @@ function mergeEntries(board, entries) {
 
 // Read a blob by pathname using list() to find its URL, then fetch the content.
 // The etag from the list result is used for optimistic concurrency in saveBoard().
+// Private-store blobs require an Authorization header — public-store blobs ignore it.
 async function readBoardFromPath(path) {
   // @vercel/blob has no get(); find the blob URL via list(), then fetch its content.
   const { blobs } = await list({ prefix: path, limit: 1 });
   const blobMeta = blobs.find((b) => b.pathname === path);
   if (!blobMeta) return null;
 
-  const response = await fetch(blobMeta.url, { cache: 'no-store' });
+  const fetchHeaders = { 'cache': 'no-store' };
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    fetchHeaders['Authorization'] = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
+  }
+  const response = await fetch(blobMeta.url, { headers: fetchHeaders });
   if (!response.ok) return null;
 
   const etag = response.headers.get('etag') || null;
@@ -216,11 +221,13 @@ async function loadBoard() {
 
 async function saveBoard(board, etag) {
   const options = {
-    access: 'public',
+    // Use 'private' to match private-store Blob accounts.
+    // Public-store accounts accept 'public' here, but private stores reject it.
+    access: 'private',
     allowOverwrite: true,
     addRandomSuffix: false,
     contentType: 'application/json',
-    cacheControlMaxAge: 60
+    cacheControlMaxAge: 0
   };
 
   if (etag) options.ifMatch = etag;
