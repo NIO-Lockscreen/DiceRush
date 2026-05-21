@@ -1116,6 +1116,7 @@ const state = {
   highScore: initialRecord.score,
   allTimeRecord: initialRecord,
   leaderboard: { scores: [] },
+  onlineLeaderboardScores: [],
   leaderboardOnline: false,
   leaderboardSaving: false,
   leaderboardLoadedOnce: false,
@@ -2349,25 +2350,36 @@ function rememberLocalLeaderboardEntries(entries){
   return merged;
 }
 function mergeOnlineAndLocalLeaderboard(onlineScores = [], extraScores = []){
-  const merged = sortedLeaderboardScores([
-    ...prepareLeaderboardEntries(onlineScores || []),
-    ...loadLocalLeaderboardEntries(),
-    ...prepareLeaderboardEntries(extraScores || [])
+  const cleanOnline = sortedLeaderboardScores(onlineScores || []);
+  const cleanExtra = prepareLeaderboardEntries(extraScores || []);
+  const localOnly = loadLocalLeaderboardEntries();
+  const visible = sortedLeaderboardScores([
+    ...cleanOnline,
+    ...localOnly,
+    ...cleanExtra
   ]);
-  state.leaderboard = { scores: merged };
-  saveLocalLeaderboardEntries(merged);
-  return merged;
+
+  // Keep Blob's real Top 10 separate from the visible board.
+  // The visible board may include unsynced local scores; do not let that trick
+  // the sync logic into thinking the score is already online.
+  state.onlineLeaderboardScores = cleanOnline;
+  state.leaderboard = { scores: visible };
+
+  // Never let an empty online board wipe local history. Store local/extra only.
+  saveLocalLeaderboardEntries([...localOnly, ...cleanExtra]);
+  return visible;
 }
 
 function getSharedTop10Qualifiers(entries){
   const cleanEntries = prepareLeaderboardEntries(entries || []);
   if (!cleanEntries.length) return [];
 
-  // Blob is only written after the shared leaderboard has loaded once.
-  // If Blob failed or is still loading, do not spend a Blob POST guessing.
+  // Blob is only written after the one allowed shared leaderboard load.
+  // The cutoff must be based on the real online board only, not the visible
+  // board, because the visible board intentionally includes local unsynced scores.
   if (!state.leaderboardOnline || !state.leaderboardLoadedOnce) return [];
 
-  const currentOnline = sortedLeaderboardScores((state.leaderboard && state.leaderboard.scores) || []);
+  const currentOnline = sortedLeaderboardScores(state.onlineLeaderboardScores || []);
   const currentSignatures = new Set(currentOnline.map(leaderboardEntrySignature));
   const combinedTop = sortedLeaderboardScores([...currentOnline, ...cleanEntries]);
   const combinedTopSignatures = new Set(combinedTop.map(leaderboardEntrySignature));
@@ -2456,11 +2468,14 @@ function renderAllTime(){
 
 let localLeaderboardSyncInFlight = false;
 async function pushLocalLeaderboardToOnline(entries){
-  const qualifiers = getSharedTop10Qualifiers(entries || []);
+  const localEntries = prepareLeaderboardEntries(entries || []);
+  const qualifiers = getSharedTop10Qualifiers(localEntries);
   if (!qualifiers.length || localLeaderboardSyncInFlight) return;
 
   localLeaderboardSyncInFlight = true;
   state.leaderboardSaving = true;
+  // Keep local scores visible while the one-time Blob catch-up runs.
+  mergeOnlineAndLocalLeaderboard(state.onlineLeaderboardScores || [], localEntries);
   renderLeaderboard();
 
   try {
@@ -2471,14 +2486,19 @@ async function pushLocalLeaderboardToOnline(entries){
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data?.error) throw new Error(data?.error || 'Blob resync failed');
+
     if (data?.leaderboard) {
       const online = normalizeLeaderboardPayload(data);
-      state.leaderboard = { scores: sortedLeaderboardScores(online.scores) };
       state.leaderboardOnline = true;
       state.leaderboardLoadedOnce = true;
+      mergeOnlineAndLocalLeaderboard(online.scores, localEntries);
+      if (data?.saved) toast('🌍 Local score synced', 'Your local Top 10 score was saved to the shared Blob leaderboard.');
     }
   } catch (error) {
     state.leaderboardOnline = false;
+    // Do not wipe the player’s browser scores if Blob sync fails.
+    state.leaderboard = { scores: sortedLeaderboardScores(localEntries) };
+    toast('⚠️ Local score not synced', 'Blob did not accept the local score yet, but it is still kept on this device.');
   } finally {
     localLeaderboardSyncInFlight = false;
     state.leaderboardSaving = false;
@@ -2486,10 +2506,11 @@ async function pushLocalLeaderboardToOnline(entries){
   }
 }
 
+
 async function loadOnlineLeaderboard(preserveEntries = [], syncLocal = true){
   const localEntries = rememberLocalLeaderboardEntries(preserveEntries || []);
 
-  // Show local fallback while loading, but do not label it as online. This does not touch Blob.
+  // Show local fallback immediately. This is not a Blob call.
   if (localEntries.length) {
     state.leaderboard = { scores: sortedLeaderboardScores(localEntries) };
     state.leaderboardOnline = false;
@@ -2505,30 +2526,37 @@ async function loadOnlineLeaderboard(preserveEntries = [], syncLocal = true){
     }
 
     const online = normalizeLeaderboardPayload(data);
-    state.leaderboard = { scores: sortedLeaderboardScores(online.scores) };
     state.leaderboardOnline = true;
     state.leaderboardLoadedOnce = true;
+
+    // Important: keep local scores visible even when Blob is empty.
+    // Empty Blob should be populated by local Top 10, not used to clear the screen.
+    mergeOnlineAndLocalLeaderboard(online.scores, localEntries);
     renderLeaderboard();
 
-    // One-time local catch-up is allowed, but only if a local score beats the shared Top 10 cutoff.
+    // One-time local catch-up is allowed, but only if a local score beats the real shared Top 10 cutoff.
     if (syncLocal && localEntries.length) pushLocalLeaderboardToOnline(localEntries);
   } catch (error) {
     state.leaderboardOnline = false;
     state.leaderboardLoadedOnce = false;
+    state.onlineLeaderboardScores = [];
     state.leaderboard = { scores: sortedLeaderboardScores(localEntries) };
     renderLeaderboard();
   }
 }
+
 
 async function submitLeaderboardScores(entries){
   const cleanEntries = prepareLeaderboardEntries(entries);
   if (!cleanEntries.length) return;
 
   const localTop = rememberLocalLeaderboardEntries(cleanEntries);
+  // Always keep the score visible locally first. Under-Top-10 scores do not need Blob.
+  mergeOnlineAndLocalLeaderboard(state.onlineLeaderboardScores || [], localTop);
+
   const qualifiers = getSharedTop10Qualifiers(cleanEntries);
 
   if (!qualifiers.length) {
-    if (!state.leaderboardOnline) state.leaderboard = { scores: localTop };
     renderLeaderboard();
     toast('🏆 Local score saved', state.leaderboardLoadedOnce
       ? 'This score did not beat the shared Top 10, so Blob was not contacted.'
@@ -2550,9 +2578,9 @@ async function submitLeaderboardScores(entries){
 
     if (data?.leaderboard) {
       const online = normalizeLeaderboardPayload(data);
-      state.leaderboard = { scores: sortedLeaderboardScores(online.scores) };
       state.leaderboardOnline = true;
       state.leaderboardLoadedOnce = true;
+      mergeOnlineAndLocalLeaderboard(online.scores, localTop);
     }
 
     if (data?.saved) {
@@ -2563,12 +2591,13 @@ async function submitLeaderboardScores(entries){
   } catch (error) {
     state.leaderboardOnline = false;
     state.leaderboard = { scores: localTop };
-    toast('⚠️ Leaderboard not saved online', 'Blob sync failed. Open /api/leaderboard?debug=1 and check BLOB_READ_WRITE_TOKEN in Vercel Production.');
+    toast('⚠️ Leaderboard not saved online', 'Blob sync failed, but your local score was not deleted. Check BLOB_READ_WRITE_TOKEN in Vercel Production.');
   } finally {
     state.leaderboardSaving = false;
     renderLeaderboard();
   }
 }
+
 
 function applyLivePlayerNames(renderNow = true){
   savePlayerNamePrefs();
