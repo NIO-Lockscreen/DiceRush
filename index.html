@@ -2485,20 +2485,20 @@ async function pushLocalLeaderboardToOnline(entries){
       body: JSON.stringify({ entries: qualifiers, source: 'local-resync-top10-only' })
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || data?.error) throw new Error(data?.error || 'Blob resync failed');
+    if (!response.ok || data?.error) throw new Error([data?.error, data?.detail].filter(Boolean).join(‘ — ‘) || ‘Blob resync failed’);
 
     if (data?.leaderboard) {
       const online = normalizeLeaderboardPayload(data);
       state.leaderboardOnline = true;
       state.leaderboardLoadedOnce = true;
       mergeOnlineAndLocalLeaderboard(online.scores, localEntries);
-      if (data?.saved) toast('🌍 Local score synced', 'Your local Top 10 score was saved to the shared Blob leaderboard.');
+      if (data?.saved) toast(‘🌍 Local score synced’, ‘Your local Top 10 score was saved to the shared Blob leaderboard.’);
     }
   } catch (error) {
     state.leaderboardOnline = false;
     // Do not wipe the player’s browser scores if Blob sync fails.
     state.leaderboard = { scores: sortedLeaderboardScores(localEntries) };
-    toast('⚠️ Local score not synced', 'Blob did not accept the local score yet, but it is still kept on this device.');
+    toast(‘⚠️ Local score not synced’, error.message || ‘Blob did not accept the local score yet, but it is still kept on this device.’);
   } finally {
     localLeaderboardSyncInFlight = false;
     state.leaderboardSaving = false;
@@ -2574,7 +2574,7 @@ async function submitLeaderboardScores(entries){
       body: JSON.stringify({ entries: qualifiers, source: 'new-score-top10-only' })
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || data?.error) throw new Error(data?.error || 'Save failed');
+    if (!response.ok || data?.error) throw new Error([data?.error, data?.detail].filter(Boolean).join(' — ') || 'Save failed');
 
     if (data?.leaderboard) {
       const online = normalizeLeaderboardPayload(data);
@@ -2591,7 +2591,7 @@ async function submitLeaderboardScores(entries){
   } catch (error) {
     state.leaderboardOnline = false;
     state.leaderboard = { scores: localTop };
-    toast('⚠️ Leaderboard not saved online', 'Blob sync failed, but your local score was not deleted. Check BLOB_READ_WRITE_TOKEN in Vercel Production.');
+    toast('⚠️ Leaderboard not saved online', error.message || 'Blob sync failed. Check BLOB_READ_WRITE_TOKEN in Vercel Production.');
   } finally {
     state.leaderboardSaving = false;
     renderLeaderboard();
