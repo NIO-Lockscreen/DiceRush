@@ -105,3 +105,15 @@ This version reads both the current Blob path and older leaderboard Blob paths, 
 Click the Online Top 10 card or the **View full Top 10** button to open the full shared leaderboard, even when it is empty.
 
 Dice descriptions now show only the current/base effect. Upgrade text appears in the upgrade preview and after the dice is actually upgraded.
+
+## Roll-trigger bonus update
+
+Pølse Power and similar result-based dice now trigger when the roll happens, not only if the final banked dice still show that result. Earned roll bonuses stack during the turn and are added when you bank the category. Any cash attached to those dice is also saved and paid at banking.
+
+## Leaderboard debug
+
+Open `/api/leaderboard?debug=1` on the deployed site. A working Blob setup should return `ok: true`, a `leaderboard` object, and `meta.hasBlobToken: true`.
+
+If it returns `503` or `meta.hasBlobToken: false`, connect a Vercel Blob store to this exact Vercel project, make sure `BLOB_READ_WRITE_TOKEN` exists for the Production environment, then redeploy.
+
+The app now labels local fallback as local only, so one browser will no longer make an empty Blob look like a working global leaderboard.

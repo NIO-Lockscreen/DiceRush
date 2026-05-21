@@ -5,6 +5,23 @@ const LEGACY_LEADERBOARD_PATHS = ['leaderboards/dice-rush-top10.json', 'leaderbo
 const MAX_ENTRIES = 10;
 const EMPTY_BOARD = { scores: [], updatedAt: null };
 
+function hasBlobToken() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+function safeErrorMessage(error) {
+  return String(error?.message || error?.name || 'Unknown Blob error').slice(0, 180);
+}
+
+function leaderboardMeta(extra = {}) {
+  return {
+    storage: 'vercel-blob',
+    path: LEADERBOARD_PATH,
+    hasBlobToken: hasBlobToken(),
+    ...extra
+  };
+}
+
 function sendJson(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -213,9 +230,18 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const { board } = await loadBoard();
-      return sendJson(res, 200, { leaderboard: board });
+      return sendJson(res, 200, {
+        ok: true,
+        leaderboard: board,
+        meta: leaderboardMeta({ count: board.scores.length, updatedAt: board.updatedAt })
+      });
     } catch (error) {
-      return sendJson(res, 200, { leaderboard: { ...EMPTY_BOARD }, warning: 'Leaderboard unavailable' });
+      return sendJson(res, 503, {
+        ok: false,
+        error: 'Leaderboard unavailable',
+        detail: safeErrorMessage(error),
+        meta: leaderboardMeta()
+      });
     }
   }
 
@@ -232,7 +258,7 @@ export default async function handler(req, res) {
   }
 
   const rawEntries = Array.isArray(body.entries) ? body.entries : [body];
-  const entries = rawEntries.map(cleanEntry).filter(Boolean).slice(0, 4);
+  const entries = rawEntries.map(cleanEntry).filter(Boolean).slice(0, MAX_ENTRIES);
   if (!entries.length) return sendJson(res, 400, { error: 'No valid scores submitted' });
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -242,23 +268,32 @@ export default async function handler(req, res) {
 
       if (!merged.saved) {
         return sendJson(res, 200, {
+          ok: true,
           saved: false,
           accepted: merged.accepted,
-          leaderboard: merged.board
+          leaderboard: merged.board,
+          meta: leaderboardMeta({ count: merged.board.scores.length, updatedAt: merged.board.updatedAt })
         });
       }
 
       await saveBoard(merged.board, etag);
       return sendJson(res, 200, {
+        ok: true,
         saved: true,
         accepted: merged.accepted,
-        leaderboard: merged.board
+        leaderboard: merged.board,
+        meta: leaderboardMeta({ count: merged.board.scores.length, updatedAt: merged.board.updatedAt })
       });
     } catch (error) {
       const message = String(error?.message || error?.name || '');
       const retryable = /Precondition|ifMatch|etag|condition/i.test(message);
       if (!retryable || attempt === 3) {
-        return sendJson(res, 500, { error: 'Could not save leaderboard score' });
+        return sendJson(res, 500, {
+          ok: false,
+          error: 'Could not save leaderboard score',
+          detail: safeErrorMessage(error),
+          meta: leaderboardMeta()
+        });
       }
       await new Promise((resolve) => setTimeout(resolve, 80 + attempt * 120));
     }
