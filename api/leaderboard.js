@@ -165,6 +165,8 @@ function mergeEntries(board, entries) {
   return { board, saved, accepted };
 }
 
+// Read a blob by pathname using list() to find its URL, then fetch the content.
+// The etag from the list result is used for optimistic concurrency in saveBoard().
 async function readBoardFromPath(path) {
   // @vercel/blob has no get(); find the blob URL via list(), then fetch its content.
   const { blobs } = await list({ prefix: path, limit: 1 });
@@ -181,9 +183,20 @@ async function readBoardFromPath(path) {
 }
 
 async function loadBoard() {
-  const primary = await readBoardFromPath(LEADERBOARD_PATH);
-  let board = primary ? primary.board : { ...EMPTY_BOARD, scores: [] };
-  let etag = primary ? primary.etag : null;
+  // Wrap the primary read in a try-catch so a transient read error (e.g. CDN hiccup)
+  // returns an empty board rather than blocking the entire POST with a 500.
+  let board;
+  let etag = null;
+  try {
+    const primary = await readBoardFromPath(LEADERBOARD_PATH);
+    board = primary ? primary.board : { ...EMPTY_BOARD, scores: [] };
+    etag = primary ? primary.etag : null;
+  } catch (readError) {
+    // If we can't read the existing board, start from scratch for this request.
+    // The missing ifMatch means the write will succeed unconditionally (last write wins).
+    board = { ...EMPTY_BOARD, scores: [] };
+    etag = null;
+  }
 
   for (const legacyPath of LEGACY_LEADERBOARD_PATHS) {
     try {
@@ -205,7 +218,8 @@ async function saveBoard(board, etag) {
   const options = {
     access: 'public',
     allowOverwrite: true,
-    contentType: 'application/json; charset=utf-8',
+    addRandomSuffix: false,
+    contentType: 'application/json',
     cacheControlMaxAge: 60
   };
 
@@ -215,6 +229,17 @@ async function saveBoard(board, etag) {
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return sendJson(res, 200, { ok: true });
+
+  // Fail fast with a clear message when the Blob token is missing so the error
+  // is actionable rather than a cryptic "Unknown Blob error".
+  if (!hasBlobToken()) {
+    return sendJson(res, 503, {
+      ok: false,
+      error: 'Leaderboard unavailable',
+      detail: 'BLOB_READ_WRITE_TOKEN is not configured. Add it in your Vercel project → Storage → Connect Store, or set it manually in Environment Variables.',
+      meta: leaderboardMeta()
+    });
+  }
 
   if (req.method === 'GET') {
     try {
