@@ -39,6 +39,7 @@ async function readBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+
 function cleanName(value, fallback = 'Player') {
   const name = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 24);
   return name || fallback;
@@ -167,18 +168,18 @@ function mergeEntries(board, entries) {
 // Read a blob by pathname using list() to find its URL, then fetch the content.
 // The etag from the list result is used for optimistic concurrency in saveBoard().
 async function readBoardFromPath(path) {
+  // @vercel/blob has no get(); find the blob URL via list(), then fetch its content.
   const { blobs } = await list({ prefix: path, limit: 1 });
   const blobMeta = blobs.find((b) => b.pathname === path);
   if (!blobMeta) return null;
 
-  const response = await fetch(blobMeta.url);
+  const response = await fetch(blobMeta.url, { cache: 'no-store' });
   if (!response.ok) return null;
 
+  const etag = response.headers.get('etag') || null;
   const text = await response.text();
   const parsed = text ? JSON.parse(text) : EMPTY_BOARD;
-  // Use the etag returned by the Blob API (list result), not the CDN response header,
-  // so the ifMatch check in saveBoard() compares against the authoritative storage etag.
-  return { board: normalizeBoard(parsed), etag: blobMeta.etag || null, path };
+  return { board: normalizeBoard(parsed), etag, path };
 }
 
 async function loadBoard() {
