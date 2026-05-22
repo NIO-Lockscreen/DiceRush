@@ -168,6 +168,19 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 @keyframes activeBonusSweep{0%{transform:translateX(-75%) rotate(12deg);opacity:0}35%{opacity:.9}100%{transform:translateX(75%) rotate(12deg);opacity:0}}
 @keyframes activeBonusEmoji{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.11) rotate(-4deg)}}
 
+/* Inverted dice — no slot limit, special background */
+.invertedRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:0}
+.slot.invertedDie{min-height:86px;border-radius:18px;border:1px solid rgba(120,80,255,.45);background:linear-gradient(180deg,rgba(100,60,255,.16),rgba(8,4,28,.62));padding:10px;text-align:center;display:flex;flex-direction:column;justify-content:center;box-shadow:0 0 18px rgba(100,60,255,.10),inset 0 1px 0 rgba(180,150,255,.12)}
+.slot.invertedDie.owned{cursor:pointer;color:var(--text);transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,transform .16s ease}
+.slot.invertedDie.owned:hover{border-color:rgba(180,110,255,.88);background:linear-gradient(180deg,rgba(120,70,255,.26),rgba(103,221,255,.09));transform:translateY(-1px)}
+.slot.invertedDie .slotName{color:#c5a8ff}
+.slot.invertedDie .slotText{color:rgba(180,150,255,.68)}
+.slot.invertedDie.selected{border-color:rgba(255,98,208,.9);box-shadow:0 0 0 2px rgba(255,98,208,.2),0 0 28px rgba(159,102,255,.28);background:linear-gradient(180deg,rgba(200,120,255,.22),rgba(103,221,255,.11))}
+.slot.invertedDie.selected .slotText{color:#d4a8ff}
+.invertedBadge{display:inline-block;margin-left:6px;font-size:10px;font-weight:1000;text-transform:uppercase;padding:3px 7px;border-radius:999px;border:1px solid rgba(130,90,255,.48);background:rgba(100,60,255,.22);color:#c5a8ff;box-shadow:0 0 10px rgba(100,60,255,.16);vertical-align:middle}
+.item.isInverted{border-color:rgba(120,80,255,.46);background:rgba(100,60,255,.10)}
+.item.isInverted:hover:not(:disabled){background:rgba(100,60,255,.17);border-color:rgba(150,100,255,.70);box-shadow:inset 0 0 0 1px rgba(130,90,255,.13),0 0 20px rgba(100,60,255,.11)}
+
 
 /* v16: roll shop + dice upgrades */
 .rollShopCard{margin-top:14px;border-radius:24px;border:1px solid rgba(255,212,105,.20);background:radial-gradient(circle at 18% 0%,rgba(255,212,105,.16),transparent 38%),rgba(0,0,0,.18);padding:14px;position:relative;overflow:hidden}.rollShopCard::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.05),transparent 55%);pointer-events:none}.rollShopHead{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.rollShopTitle{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:1000}.rollShopSub{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}.rollShopGrid{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rollShopBtn{min-height:78px;text-align:left;border-radius:18px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);padding:10px;display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;transition:transform .16s ease,border-color .16s ease,background .16s ease}.rollShopBtn:hover:not(:disabled){transform:translateY(-2px);background:rgba(255,255,255,.12);border-color:rgba(255,212,105,.45);box-shadow:0 0 28px rgba(255,212,105,.10)}.rollShopIcon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(255,212,105,.9),rgba(255,98,208,.72));font-size:22px}.rollShopName{font-weight:1000;letter-spacing:-.03em}.rollShopText{margin-top:2px;color:var(--muted);font-size:11px;line-height:1.25}.rollShopCost{color:var(--gold);font-weight:1000}.slot.upgraded{border-color:rgba(255,212,105,.95);background:linear-gradient(180deg,rgba(255,212,105,.27),rgba(103,221,255,.11));box-shadow:0 0 0 2px rgba(255,212,105,.18),0 0 34px rgba(255,212,105,.20)}.slot.upgraded .slotName{color:#ffe39b}.slot.upgraded .slotText{color:#ffe39b}.category.heatMiss{opacity:.78}.upgradeSpark{position:fixed;z-index:67;pointer-events:none;font-size:38px;animation:upgradeSparkFly .9s ease-out forwards;filter:drop-shadow(0 0 18px rgba(255,212,105,.7))}@keyframes upgradeSparkFly{0%{opacity:0;transform:translate(-50%,16px) scale(.5) rotate(-18deg)}20%{opacity:1;transform:translate(-50%,0) scale(1.2) rotate(8deg)}100%{opacity:0;transform:translate(-50%,-86px) scale(.8) rotate(38deg)}}@media(max-width:560px){.rollShopGrid{grid-template-columns:1fr}.rollShopBtn{min-height:68px}}
@@ -190,6 +203,22 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 .leaderboardStatus{margin-top:10px;font-size:11px;color:rgba(255,255,255,.58);line-height:1.35}
 .leaderboardOpenBtn{margin-top:14px;width:100%;border:1px solid rgba(255,212,105,.28);background:rgba(255,212,105,.10);color:var(--gold);border-radius:999px;padding:10px 12px;font-weight:1000;cursor:pointer}.leaderboardOpenBtn:hover{background:rgba(255,212,105,.18);border-color:rgba(255,212,105,.5)}
 .allTimeCard{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}.allTimeCard:hover{transform:translateY(-2px);border-color:rgba(255,212,105,.58);box-shadow:0 22px 60px rgba(255,212,105,.16),inset 0 1px 0 rgba(255,255,255,.18)}.leaderboardModalList{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:8px;max-height:min(62vh,620px);overflow:auto}.leaderboardModalList li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11)}.leaderboardModalList .leaderboardSub{grid-column:2 / 4}.leaderboardEmpty{opacity:.55}
+/* Score breakdown tooltip */
+#scoreBreakdownTip{display:none;position:fixed;z-index:62;background:rgba(14,18,26,.97);border:1px solid rgba(255,212,105,.32);border-radius:14px;padding:10px 13px;width:210px;pointer-events:none;font-size:11.5px;line-height:1.5;box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04)}
+#scoreBreakdownTip .tbTitle{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.42);margin-bottom:5px;font-weight:700}
+#scoreBreakdownTip .tbRow{display:flex;justify-content:space-between;gap:10px;padding:1px 0}
+#scoreBreakdownTip .tbLabel{color:rgba(255,255,255,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+#scoreBreakdownTip .tbVal{color:#fff;font-weight:700;white-space:nowrap;flex-shrink:0}
+#scoreBreakdownTip .tbBase .tbLabel{color:rgba(255,255,255,.55)}
+#scoreBreakdownTip .tbBase .tbVal{color:rgba(255,255,255,.75);font-weight:600}
+#scoreBreakdownTip .tbBonus .tbVal{color:#9ef5ce}
+#scoreBreakdownTip .tbHeat{border-top:1px solid rgba(255,212,105,.2);margin-top:5px;padding-top:5px}
+#scoreBreakdownTip .tbHeat .tbLabel{color:var(--gold);font-weight:700}
+#scoreBreakdownTip .tbHeat .tbVal{color:var(--gold);font-weight:800}
+#scoreBreakdownTip .tbTotal{border-top:1px solid rgba(255,255,255,.15);margin-top:5px;padding-top:5px}
+#scoreBreakdownTip .tbTotal .tbLabel{color:#fff;font-weight:800;font-size:12.5px}
+#scoreBreakdownTip .tbTotal .tbVal{color:#fff;font-weight:900;font-size:14px;letter-spacing:-.03em}
+#scoreBreakdownTip .tbMiss .tbLabel,#scoreBreakdownTip .tbMiss .tbVal{color:rgba(255,255,255,.38);font-style:italic}
 
 </style>
 </head>
@@ -312,10 +341,10 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
             <div class="rollShopCost" id="rollShopCash">$0</div>
           </div>
           <div class="rollShopGrid">
-            <button class="rollShopBtn" id="rollShopRerollDieBtn"><div class="rollShopIcon">🎲</div><div><div class="rollShopName">Reroll one die <span class="rollShopCost">$500</span></div><div class="rollShopText">Rerolls one unheld die once. Prioritizes dice not helping the target.</div></div></button>
-            <button class="rollShopBtn" id="rollShopCashScoreBtn"><div class="rollShopIcon">💸</div><div><div class="rollShopName">Cash-to-score engine <span class="rollShopCost">$500</span></div><div class="rollShopText">Permanent: +10% of cash balance to score for each buy.</div></div></button>
-            <button class="rollShopBtn" id="rollShopExtraRollBtn"><div class="rollShopIcon">➕</div><div><div class="rollShopName">Extra roll <span class="rollShopCost">$1000</span></div><div class="rollShopText">Adds one more roll for all dice that are not held.</div></div></button>
-            <button class="rollShopBtn" id="upgradeDiceBtn"><div class="rollShopIcon">✨</div><div><div class="rollShopName">Upgrade selected dice <span class="rollShopCost">$666</span></div><div class="rollShopText">Select a dice. Upgrade details appear here only when you can afford it.</div></div></button>
+            <button class="rollShopBtn" id="rollShopRerollDieBtn"><div class="rollShopIcon">🎲</div><div><div class="rollShopName">Reroll one die <span class="rollShopCost">$250</span></div><div class="rollShopText">Rerolls one unheld die once. Prioritizes dice not helping the target.</div></div></button>
+            <button class="rollShopBtn" id="rollShopCashScoreBtn"><div class="rollShopIcon">💸</div><div><div class="rollShopName">Cash-to-score engine <span class="rollShopCost">$150</span></div><div class="rollShopText">Permanent: +20% of cash balance to score for each buy.</div></div></button>
+            <button class="rollShopBtn" id="rollShopExtraRollBtn"><div class="rollShopIcon">➕</div><div><div class="rollShopName">Extra roll <span class="rollShopCost">$500</span></div><div class="rollShopText">Adds one more roll for all dice that are not held.</div></div></button>
+            <button class="rollShopBtn" id="upgradeDiceBtn"><div class="rollShopIcon">✨</div><div><div class="rollShopName">Upgrade selected dice <span class="rollShopCost">$—</span></div><div class="rollShopText">Select a dice. Cost varies by rarity. Details unlock when you can afford it.</div></div></button>
           </div>
         </div>
       </div>
@@ -348,6 +377,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
         </div>
         <div class="section"><span>Your dice</span><span id="invCount">0 / 6</span></div>
         <div class="inventory" id="inventory"></div>
+        <div id="invertedContainer"></div>
         <div class="section"><span>Current stock</span></div>
         <div class="shopGrid" id="stock"></div>
         <div class="shopBtns">
@@ -369,6 +399,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 <div class="modalBg" id="endModal"><div class="modal"><h2 id="endTitle">Game over!</h2><div class="final" id="finalScore">0</div><p id="finalCopy">One more run?</p><div class="modalActions"><button class="primary" id="playAgainBtn">Play again</button><button class="pill" id="closeEndBtn">Close</button></div></div></div>
 <div class="modalBg" id="leaderboardModal"><div class="modal" style="text-align:left;width:min(720px,100%)"><h2 style="font-size:40px">Online Top 10</h2><p>Best scores from both single-player and multiplayer. In 2-player games, each player saves their own individual score here.</p><ol class="leaderboardModalList" id="leaderboardModalList"><li>Loading...</li></ol><div class="modalActions"><button class="primary" id="closeLeaderboardBtn">Close</button></div></div></div>
 <div class="modalBg" id="diceGuideModal"><div class="modal" style="text-align:left;width:min(940px,100%)"><h2 style="font-size:40px">Dice explainer</h2><div class="guideIntro" id="diceGuideMeta">Every dice is in the starting loot pool. Rare and legendary dice become more likely as the round number increases.</div><div class="guideGrid" id="diceGuideList"></div><div class="modalActions"><button class="primary" id="closeDiceGuideBtn">Close</button></div></div></div>
+<div id="scoreBreakdownTip"><div class="tbTitle">Score breakdown</div></div>
 <div class="modalBg" id="musicModal"><div class="modal musicPanel"><h2 style="font-size:40px">Hidden MP3 player</h2><p>Music auto-loads from the <b>mp3</b> folder when the browser can find it. You can also choose local MP3 files manually.</p><div class="musicCard" id="musicCard"><div class="musicHead"><span>MP3 Player</span><span class="musicBadge" id="musicState">Searching</span></div><div class="musicTrack" id="musicTrack">Looking for /mp3 music...</div><div class="musicHint" id="musicHint">Long press the audio button to open this panel.</div></div><input id="musicFileInput" type="file" accept="audio/mpeg,audio/mp3,.mp3" multiple hidden><div class="musicActions"><button class="primary" id="openMusicFileBtn">📁 Choose MP3 file</button><button class="pill" id="musicPlayPauseBtn">▶️ Play / pause</button><button class="pill" id="musicPrevBtn">⏮️ Previous</button><button class="pill" id="musicNextBtn">⏭️ Next</button></div><div class="modalActions"><button class="pill" id="closeMusicModalBtn">Close</button></div></div></div>
 
 <script>
@@ -535,7 +566,9 @@ const diceDocs = {
 };
 
 
-const ROLL_SHOP_COSTS = { rerollDie: 500, cashScore: 500, extraRoll: 1000, upgradeDice: 666 };
+const ROLL_SHOP_COSTS = { rerollDie: 250, cashScore: 150, extraRoll: 500, upgradeDice: 666 };
+const UPGRADE_RARITY_COSTS = { cursed: 150, common: 200, uncommon: 350, rare: 500, legend: 700 };
+const UPGRADE_SPECIAL_IDS = ['rerollbaron','salvager','gambler','gamebreaker','pointstealer','sixtyseven'];
 const diceUpgradeText = {
   mirror:'Prism upgrade: when it copies a die, it also adds a high-face bonus before heat.', vampire:'Bloodmoon upgrade: lower-section 6s become bonus points and cash after the bite.', boom:'Mega bomb: sixes explode harder and become cash too.', snake:'Royal snake: 1s become premium on every row: bigger score, cash, and a huge Ones payout.', cat:'Golden cat: better double chance and sometimes triples the final score.', printer:'Laser printer: positive banks also get score before heat and much more cash.', tax:'Tax refund: dead scores become points and pay more cash.', coupon:'Black-card coupon: shop prices become cheaper and roll-shop powers get discounted.', space:'Orbital upgrade: Large Straight gets an even bigger rocket payoff, and near-space straight rolls still get help.', mouse:'Mansion mouse: real Full Houses become huge; two-pair misses still get a consolation bite but no heat.', slot:'Jackpot upgrade: triples pay score as well as money.', neon:'Neon overdrive: activates from lower totals and pays more.', royal:'Crown upgrade: Yahtzee gets even more absurd; four-of-kind in Yahtzee gets a consolation crown.', chaos:'Controlled chaos: random bonus is much bigger and never tiny.', magnet:'Mega magnet: any three-run adds points, and Small Straight becomes easier to rescue.', duck:'Golden duck: twos pay double score and more cash.', soup:'Gourmet soup: low totals up to 15 become useful.', bacon:'Crispy bacon: 4+2 combo hits harder, and either ingredient gives a snack bonus.', dentist:'Diamond dentist: every pair pays a lot more.', banana:'Steel banana: zero rescues become strong enough to matter.', coffee:'Triple espresso: fast banking pays much more.', goblin:'Greed king: totals near 13 also pay.', clown:'Circus upgrade: Four of a Kind becomes a monster and triples get a honk.', accountant:'Chief accountant: Chance scaling doubles and other categories get a small audit.', dragon:'Ancient dragon: wakes earlier, pays more score and cash.', sock:'Dry sock: odd-score fixer becomes real points.', cheese:'Aged cheese: fives pay double.', wizard:'Archwizard: mixed-face rolls get a stronger spell.', panic:'Panic nuke: weak scores get a much larger save.', troll:'Mountain troll: all-even/all-odd is huge, and four-of-a-kind parity still helps.', pizza:'Family pizza: totals near 25 count too.', raccoon:'Trash king: 1s become premium garbage.', forklift:'Heavy forklift: even one 6 helps; two 6s hit hard.', microwave:'Industrial microwave: even totals beep harder.', glue:'Super glue: held dice become high-value planning.', wog:'WOW: curse removed. Never steals points. Yahtzee gives +666, any roll with 1s gives +111 plus +22 per 1 and +$66, and all other rolls still give +66 and +$22.', moon:'Big moon: tiny-ish rolls up to 4 are now strong.', alien:'Alien council: four or five different faces pay hard.', grandma:'Grandma vault: upper-section scores get a much bigger pre-heat purse.', lawsuit:'Supreme court: every 1 pays serious damages.', viking:'Berserker audit: two or more odd dice can trigger.', jackpot:'Mega jackpot: any pair helps, exact one-pair explodes.', couch:'Recliner throne: final-roll banking is much better, but even earlier banks get comfort.', treasure:'Golden trophy: low scores get rescued before heat.', opera:'Opera finale: three-run progress can sing.', otter:'Senior otter: 3s pay real score and cash.', minty:'Mint factory: 4s pay real score and cash.', doskal:'Golden flush: scores divisible by 5 get cleaned up.', pretzel:'Mega pretzel: four or more different faces get a better knot.', polse:'Loaded pølse: totals around 18 count.', stink:'Toxic stink: two even dice can activate.', mousetrap:'Bear trap: first Three of a Kind pays score and more cash.', brainfreeze:'Deep freeze: holding four or more dice can arm value.', hedgehog:'Dragon hedgehog: cash hoards convert much harder.', sykkel:'Turbo sykkel: any three-run pays more; four-run pays a lot.', garlic:'Holy garlic: Yahtzee pays score and big money.', goose:'War goose: straights honk score and more cash.', roller:'Roller inferno: triples scale much harder.', mutant:'Stable mutant: upgrade chance becomes 50%, still choosing the die value your target needs most.', lifebuoy:'Rescue boat: weak banks are lifted higher.', sushi:'Omakase combo: two-pair/full-house pair structures pay more.', trolltunga:'Legendary peak: odd Yahtzees become absurdly huge; odd triples still matter.', lightning:'Thunder round: quick banks are explosive.', unicorn:'Rainbow unicorn: 2-3-4-5-6 becomes a true jackpot, and large straights still sparkle.', ufo:'Mothership: sixes and abduction pay more.', rerollbaron:'Executive rerolls: every turn starts with +2 extra rolls, and quick banks get a small focus bonus.', salvager:'Junkyard engine: selling a dice gives +2 rolls instead of +1, and salvage turns can add bonus score.', gambler:'High roller floor: heat floor becomes x3. Yahtzee still busts score to 0, but pays a cash consolation.', gamebreaker:'Cheat code upgrade: off-order forced-mode banks get a larger pre-heat bonus.', pointstealer:'Grand theft upgrade: a pair is enough to trigger the swap offer, and a successful steal takes +25 extra.', sixtyseven:'Lucky 67 upgrade: any real roll with a 6 has a 50% chance to mutate another die into a visible 7. Banking with a 7 adds +67 on top of the flat 67.', blackhole:'Event horizon: 30 is apocalyptic; 26+ is still excellent.'
 };
@@ -579,8 +612,18 @@ function diceSlotStatus(player,item, activeBonus, selected){
   if (isUpgraded(player,item.id)) return item.id === 'wog' ? 'WOW effect active' : 'Current effect active';
   return activeBonus ? 'ACTIVE BONUS' : selected ? 'Selected' : 'Click/hover';
 }
-function rollShopCost(player, key){
-  const base = ROLL_SHOP_COSTS[key] || 0;
+function rollShopCost(player, key, itemId = null){
+  let base;
+  if (key === 'upgradeDice') {
+    const targetItem = itemId
+      ? shopItems.find(it => it.id === itemId)
+      : (selectedOwnedDice(player) || {}).item;
+    base = targetItem
+      ? (UPGRADE_SPECIAL_IDS.includes(targetItem.id) ? 666 : (UPGRADE_RARITY_COSTS[targetItem.rarity] || 666))
+      : 666;
+  } else {
+    base = ROLL_SHOP_COSTS[key] || 0;
+  }
   const discount = has(player,'coupon') ? (isUpgraded(player,'coupon') ? .75 : .9) : 1;
   return Math.max(1, Math.ceil(base * discount));
 }
@@ -615,7 +658,7 @@ function smartUpgradePayload(id, ctx){
     case 'coffee': return state.rollsLeft >= 1 ? {score:40,note:'Triple Espresso upgrade'} : null;
     case 'goblin': return total >= 12 && total <= 14 ? {score:40,money:20,note:'Greed King upgrade'} : null;
     case 'clown': return values.some(v=>v>=4) ? {score:90,note:'Circus Clown upgrade'} : (tripleFace ? {score:30,note:'Clown triple honk upgrade'} : null);
-    case 'accountant': return catId === 'chance' ? {score:player.inv.length*10,note:'Chief Accountant upgrade'} : {score:player.inv.length*3,note:'Small audit upgrade'};
+    case 'accountant': { const allDice = player.inv.length + (player.invertedInv||[]).length; return catId === 'chance' ? {score:allDice*10,note:'Chief Accountant upgrade'} : {score:allDice*3,note:'Small audit upgrade'}; }
     case 'dragon': return currentRawScore() >= 40 ? {score:70,money:60,note:'Ancient Dragon upgrade'} : null;
     case 'sock': return currentRawScore() > 0 ? {score: currentRawScore()%2===1 ? 25 : 12, note:'Dry Sock upgrade'} : null;
     case 'cheese': return (c[5]||0) ? {score:(c[5]||0)*10,money:(c[5]||0)*5,note:'Aged Cheese upgrade'} : null;
@@ -742,6 +785,7 @@ const els = {
   shopCash: document.getElementById('shopCash'),
   invCount: document.getElementById('invCount'),
   inventory: document.getElementById('inventory'),
+  invertedContainer: document.getElementById('invertedContainer'),
   stock: document.getElementById('stock'),
   poolMeta: document.getElementById('poolMeta'),
   rerollShopBtn: document.getElementById('rerollShopBtn'),
@@ -1136,13 +1180,16 @@ function createPlayer(name){
     yahtzeeBonus: 0,
     cash: 40,
     inv: [],
+    invertedInv: [],
     paid: {},
     upgrades: {},
     cashScoreRanks: 0,
     stock: [],
+    stockInverted: [],
     selectedTarget: 'ones',
     lastTurn: null,
     selectedSellIndex: null,
+    selectedSellIsInverted: false,
     mousetrapUsed: false,
     scoreSwapAdjust: 0,
     turnRollBonuses: []
@@ -1154,7 +1201,7 @@ function isUsed(player, id){ return Object.prototype.hasOwnProperty.call(player.
 function sumDice(dice = state.dice){ return dice.reduce((a,b)=>a+b,0); }
 function counts(dice = state.dice){ return dice.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{}); }
 function isYahtzee(dice = state.dice){ return new Set(dice).size === 1; }
-function has(player, itemId){ return player.inv.includes(itemId); }
+function has(player, itemId){ return player.inv.includes(itemId) || (player.invertedInv || []).includes(itemId); }
 function findCategory(id){ return categories.find(c=>c.id===id); }
 function escapeHTML(value){
   return String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
@@ -1432,7 +1479,7 @@ function rollTriggerPayload(id, { player, dice }){
 function collectTurnRollBonuses(player, dice, source = 'roll'){
   if (!player || !Array.isArray(dice) || !state.hasRolled || state.scoring) return [];
   const found = [];
-  for (const id of [...new Set(player.inv || [])]) {
+  for (const id of [...new Set([...(player.inv || []), ...(player.invertedInv || [])])]) {
     if (!isTurnRollTrigger(id)) continue;
     const payload = rollTriggerPayload(id, { player, dice });
     if (!payload) continue;
@@ -1606,9 +1653,11 @@ function renderHeatMeter(){
 function selectedOwnedDice(player){
   const index = normalizeSellSelection(player);
   if (index === null || index === undefined) return null;
-  const id = player.inv[index];
+  const isInverted = player.selectedSellIsInverted || false;
+  const inv = isInverted ? (player.invertedInv || []) : player.inv;
+  const id = inv[index];
   const item = shopItems.find(it=>it.id===id);
-  return item ? { index, id, item } : null;
+  return item ? { index, id, item, isInverted } : null;
 }
 function renderRollShop(){
   if (!els.rollShopCard) return;
@@ -1629,7 +1678,7 @@ function renderRollShop(){
     else upgradeTextEl.textContent = 'Upgrade details unlock when you have enough cash.';
   }
   els.rollShopCash.textContent = `$${player.cash}`;
-  els.rollShopMeta.textContent = `Cash-score ranks: ${player.cashScoreRanks || 0} (${(player.cashScoreRanks || 0) * 10}% of cash added before heat). Selected: ${selectedName}.`;
+  els.rollShopMeta.textContent = `Cash-score ranks: ${player.cashScoreRanks || 0} (${(player.cashScoreRanks || 0) * 20}% of cash added before heat). Selected: ${selectedName}.`;
   els.rollShopRerollDieBtn.querySelector('.rollShopCost').textContent = `$${rerollCost}`;
   els.rollShopCashScoreBtn.querySelector('.rollShopCost').textContent = `$${cashScoreCost}`;
   els.rollShopExtraRollBtn.querySelector('.rollShopCost').textContent = `$${extraRollCost}`;
@@ -1707,8 +1756,8 @@ function effectScore(player, catId, {preview=false} = {}){
 
   const cashScoreRanks = player.cashScoreRanks || 0;
   if (cashScoreRanks > 0) {
-    const cashScoreBonus = Math.floor(player.cash * 0.10 * cashScoreRanks);
-    addScore('rollshop_cash', cashScoreBonus, cashScoreBonus ? `Cash-to-score rank ${cashScoreRanks}: +${cashScoreBonus} before heat` : '');
+    const cashScoreBonus = Math.floor(player.cash * 0.20 * cashScoreRanks);
+    addScore('rollshop_cash', cashScoreBonus, cashScoreBonus ? `Cash-to-score rank ${cashScoreRanks}: +${cashScoreBonus} (${cashScoreRanks * 20}% of $${player.cash}) before heat` : '');
   }
 
   if (has(player,'gamebreaker') && state.targetMode === 'forced' && catId !== currentTarget(player)) {
@@ -1780,7 +1829,7 @@ function effectScore(player, catId, {preview=false} = {}){
   }
   if (has(player,'clown') && catId === 'fourKind' && computeBaseScore(catId,dice) > 0) addScore('clown', 40, 'Clown Car +40');
   if (has(player,'accountant') && catId === 'chance') {
-    const accountBonus = player.inv.length * 5;
+    const accountBonus = (player.inv.length + (player.invertedInv||[]).length) * 5;
     addScore('accountant', accountBonus, accountBonus ? `Accountant +${accountBonus}` : '');
   }
   if (has(player,'sock') && currentRawScore() > 0 && currentRawScore() % 2 === 1) addScore('sock', 9, 'Wet Sock +9');
@@ -1875,7 +1924,7 @@ function effectScore(player, catId, {preview=false} = {}){
   }
 
   // Smart upgrades: every upgraded dice gains a stronger, theme-aware payoff before heat.
-  for (const id of [...new Set(player.inv || [])]) {
+  for (const id of [...new Set([...(player.inv || []), ...(player.invertedInv || [])])]) {
     if (!isUpgraded(player,id) || id === 'wog' || isTurnRollTrigger(id)) continue;
     const payload = smartUpgradePayload(id, {player, catId, cat, dice, c, values, total, categoryScore, diceScore, money, preview, currentRawScore});
     if (!payload) continue;
@@ -2036,13 +2085,16 @@ function weightedPick(pool, progress){
   return pool.length - 1;
 }
 function refreshShop(player){
-  const pool = shopItems.filter(item => !player.inv.includes(item.id) && isShopItemAvailable(item));
+  const ownedAll = new Set([...player.inv, ...(player.invertedInv || [])]);
+  const pool = shopItems.filter(item => !ownedAll.has(item.id) && isShopItemAvailable(item));
   const progress = Math.min(1, Math.max(0, (playerRound(player) - 1) / (categories.length - 1)));
   player.stock = [];
   while (player.stock.length < 3 && pool.length) {
     const i = weightedPick(pool, progress);
     player.stock.push(pool.splice(i,1)[0].id);
   }
+  // 5% chance each shop slot is an inverted die (no slot cost, special background)
+  player.stockInverted = player.stock.map(() => Math.random() < 0.05);
 }
 
 function renderPlayers(){
@@ -2094,6 +2146,50 @@ function renderDice(){
   });
 }
 
+function showScoreBreakdown(player, catId, btn){
+  const tip = document.getElementById('scoreBreakdownTip');
+  if (!tip) return;
+  const result = effectScore(player, catId, {preview: true});
+  const cat = findCategory(catId);
+  let html = '<div class="tbTitle">Score breakdown</div>';
+
+  // Base category score row
+  const baseClass = result.categoryScore > 0 ? 'tbBase' : 'tbBase tbMiss';
+  html += `<div class="tbRow ${baseClass}"><span class="tbLabel">${cat.name} base</span><span class="tbVal">${result.categoryScore > 0 ? '+' + result.categoryScore : '—'}</span></div>`;
+
+  // Bonus notes (all except heat multiplier note)
+  const bonusNotes = result.notes.filter(n => n && !n.startsWith('Target heat'));
+  for (const n of bonusNotes) {
+    html += `<div class="tbRow tbBonus"><span class="tbLabel">${n}</span></div>`;
+  }
+
+  // Heat multiplier (styled separately)
+  if (result.targetMultiplier > 1 && result.preMultiplierScore > 0) {
+    html += `<div class="tbRow tbHeat"><span class="tbLabel">× Heat ${result.targetMultiplier}x</span><span class="tbVal">${result.preMultiplierScore} → ${result.multipliedScore}</span></div>`;
+  }
+
+  // Final total
+  html += `<div class="tbRow tbTotal"><span class="tbLabel">Preview</span><span class="tbVal">${result.score}</span></div>`;
+
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+
+  const rect = btn.getBoundingClientRect();
+  const tipW = 218;
+  const tipH = tip.scrollHeight || 160;
+  let left = rect.right + 8;
+  if (left + tipW > window.innerWidth - 4) left = rect.left - tipW - 8;
+  let top = rect.top;
+  if (top + tipH > window.innerHeight - 4) top = Math.max(4, window.innerHeight - tipH - 4);
+  tip.style.left = `${Math.max(4, left)}px`;
+  tip.style.top = `${top}px`;
+}
+
+function hideScoreBreakdown(){
+  const tip = document.getElementById('scoreBreakdownTip');
+  if (tip) tip.style.display = 'none';
+}
+
 function renderScoreCards(){
   const player = activePlayer();
   const forced = state.targetMode === 'forced';
@@ -2141,6 +2237,9 @@ function renderScoreCards(){
         renderShop();
         renderHeatMeter();
       }
+      if (state.hasRolled && !activeUsed && !state.rolling && !state.scoring) {
+        showScoreBreakdown(player, cat.id, btn);
+      }
     };
     btn.onfocus = btn.onmouseenter;
     btn.onmouseleave = () => {
@@ -2150,6 +2249,7 @@ function renderScoreCards(){
         renderShop();
         renderHeatMeter();
       }
+      hideScoreBreakdown();
     };
     btn.onblur = btn.onmouseleave;
     btn.onclick = () => scoreTarget(cat.id, btn);
@@ -2161,8 +2261,10 @@ function renderShop(){
   const player = activePlayer();
   els.shopCash.textContent = `$${player.cash}`;
   if (els.poolMeta) els.poolMeta.textContent = `${shopItems.filter(isShopItemAvailable).length}/${shopItems.length} dice available for this mode • stronger dice are rarer • rare odds rise in round ${Math.min(playerRound(player),13)}/13`;
-  els.invCount.textContent = `${player.inv.length} / 6`;
+  const invertedInvCount = (player.invertedInv || []).length;
+  els.invCount.textContent = `${player.inv.length} / 6${invertedInvCount > 0 ? ` + ${invertedInvCount} ✦` : ''}`;
   els.inventory.innerHTML = '';
+  if (els.invertedContainer) els.invertedContainer.innerHTML = '';
   normalizeSellSelection(player);
   const previewTargets = state.targetMode === 'forced'
     ? [currentTarget(player)].filter(Boolean)
@@ -2182,7 +2284,7 @@ function renderShop(){
     slot.className = 'slot' + (item ? ' owned' : '') + (selected ? ' selected' : '') + (activeBonus ? ' activeBonus' : '') + (upgraded ? ' upgraded' : '');
     if (item) {
       slot.dataset.itemId = item.id;
-      const sale = getSellRefund(player, i);
+      const sale = getSellRefund(player, i, false);
       const detail = `${displayItemName(player,item)} (${item.rarity}). ${displayItemDesc(player,item)} Bought for $${sale.paid}. Sells for $${sale.refund}.${activeBonus ? ' Active now: this dice changes the current bank preview.' : ''}`;
       slot.title = detail;
       slot.setAttribute('aria-label', detail);
@@ -2192,7 +2294,8 @@ function renderShop(){
       slot.onfocus = explainOwnedDice;
       slot.onclick = () => {
         player.selectedSellIndex = i;
-        setMoment(item.emoji, `${displayItemName(player,item)} selected`, `${displayItemDesc(player,item)} Sell it for $${sale.refund}, upgrade it for $${rollShopCost(player,'upgradeDice')}, or keep it for future scores.`);
+        player.selectedSellIsInverted = false;
+        setMoment(item.emoji, `${displayItemName(player,item)} selected`, `${displayItemDesc(player,item)} Sell it for $${sale.refund}, upgrade it for $${rollShopCost(player,'upgradeDice',item.id)}, or keep it for future scores.`);
         render();
       };
     } else {
@@ -2201,22 +2304,74 @@ function renderShop(){
     }
     els.inventory.appendChild(slot);
   }
+
+  // Render inverted dice rows (3 per row, no slot limit)
+  const invertedInv = player.invertedInv || [];
+  if (els.invertedContainer && invertedInv.length > 0) {
+    const invSectionLabel = document.createElement('div');
+    invSectionLabel.className = 'section';
+    invSectionLabel.style.marginTop = '10px';
+    invSectionLabel.innerHTML = `<span>✦ Inverted dice</span><span style="color:rgba(180,150,255,.7);font-size:11px">No slot limit</span>`;
+    els.invertedContainer.appendChild(invSectionLabel);
+    const numRows = Math.ceil(invertedInv.length / 3);
+    for (let row = 0; row < numRows; row++) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'invertedRow';
+      rowDiv.style.marginBottom = '8px';
+      for (let col = 0; col < 3; col++) {
+        const idx = row * 3 + col;
+        const invId = invertedInv[idx];
+        const invItem = invId ? shopItems.find(it => it.id === invId) : null;
+        const invSlot = document.createElement('button');
+        invSlot.type = 'button';
+        const invSelected = invItem && player.selectedSellIsInverted && player.selectedSellIndex === idx;
+        const invActiveBonus = invItem && activeBonusItems.has(invItem.id);
+        invSlot.className = 'slot invertedDie' + (invItem ? ' owned' : '') + (invSelected ? ' selected' : '') + (invActiveBonus ? ' activeBonus' : '');
+        if (invItem) {
+          invSlot.dataset.itemId = invItem.id;
+          const invPaid = player.paid[invItem.id] ?? shopPrice(player, invItem);
+          const invRefund = Math.max(0, Math.min(invPaid - 1, Math.floor(invPaid * 0.55)));
+          const invDetail = `${displayItemName(player,invItem)} (${invItem.rarity}) — Inverted. ${displayItemDesc(player,invItem)} Bought for $${invPaid}. Sells for $${invRefund}. Inverted dice use no inventory slot.`;
+          invSlot.title = invDetail;
+          invSlot.setAttribute('aria-label', invDetail);
+          invSlot.innerHTML = `<div class="slotEmoji">${invItem.emoji}</div><div class="slotName">${displayItemName(player,invItem)}</div><div class="slotText">${diceSlotStatus(player,invItem,invActiveBonus,invSelected)} • Sell $${invRefund}</div>`;
+          invSlot.onmouseenter = () => setMoment(invItem.emoji, displayItemName(player,invItem) + ' (inverted)', `${displayItemDesc(player,invItem)} Inverted — no slot used. Sell for $${invRefund}.`);
+          invSlot.onfocus = invSlot.onmouseenter;
+          invSlot.onclick = () => {
+            player.selectedSellIndex = idx;
+            player.selectedSellIsInverted = true;
+            setMoment(invItem.emoji, `${displayItemName(player,invItem)} selected (inverted)`, `${displayItemDesc(player,invItem)} Inverted dice use no slot. Sell for $${invRefund} or upgrade for $${rollShopCost(player,'upgradeDice',invItem.id)}.`);
+            render();
+          };
+        } else {
+          invSlot.disabled = true;
+          invSlot.innerHTML = `<div class="slotEmoji">◈</div><div class="slotName">Inverted slot</div><div class="slotText">Awaiting inverted</div>`;
+        }
+        rowDiv.appendChild(invSlot);
+      }
+      els.invertedContainer.appendChild(rowDiv);
+    }
+  }
+
   els.stock.innerHTML = '';
-  player.stock.forEach(itemId => {
+  const stockInverted = player.stockInverted || [];
+  const ownedAll = new Set([...player.inv, ...(player.invertedInv || [])]);
+  player.stock.forEach((itemId, stockIdx) => {
     const item = shopItems.find(it=>it.id===itemId);
     const cost = shopPrice(player,item);
+    const isInverted = stockInverted[stockIdx] === true;
     const btn = document.createElement('button');
-    btn.className = 'item';
-    btn.disabled = player.cash < cost || player.inv.length >= 6 || player.inv.includes(item.id);
-    btn.innerHTML = `<div class="emoji">${item.emoji}</div><div><div class="catName">${item.name}<span class="rarity rarity-${item.rarity}">${item.rarity}</span></div><div class="catDesc">${displayItemDesc(player,item)}</div></div><div class="price">$${cost}</div>`;
-    btn.onclick = () => buyItem(item.id, btn);
+    btn.className = 'item' + (isInverted ? ' isInverted' : '');
+    btn.disabled = player.cash < cost || (!isInverted && player.inv.length >= 6) || ownedAll.has(item.id);
+    btn.innerHTML = `<div class="emoji">${item.emoji}</div><div><div class="catName">${item.name}<span class="rarity rarity-${item.rarity}">${item.rarity}</span>${isInverted ? '<span class="invertedBadge">✦ inverted</span>' : ''}</div><div class="catDesc">${displayItemDesc(player,item)}${isInverted ? ' <em>Inverted: uses no dice slot.</em>' : ''}</div></div><div class="price">$${cost}</div>`;
+    btn.onclick = () => buyItem(item.id, btn, isInverted);
     els.stock.appendChild(btn);
   });
   const rerollCost = currentRerollCost();
   els.rerollShopBtn.textContent = `Reroll shop $${rerollCost}`;
   els.rerollShopBtn.disabled = player.cash < rerollCost;
   const lastSell = getSellRefund(player);
-  els.sellLastBtn.textContent = lastSell ? `Sell selected: ${lastSell.item.name} +$${lastSell.refund}${has(player,'salvager') && state.hasRolled ? (isUpgraded(player,'salvager') ? ' +2 rolls' : ' +1 roll') : ''}` : 'Sell selected dice';
+  els.sellLastBtn.textContent = lastSell ? `Sell selected: ${lastSell.item.name} +$${lastSell.refund}${lastSell.isInverted ? ' ✦' : ''}${has(player,'salvager') && state.hasRolled ? (isUpgraded(player,'salvager') ? ' +2 rolls' : ' +1 roll') : ''}` : 'Sell selected dice';
   els.sellLastBtn.disabled = !lastSell;
   renderHeatMeter();
   renderRollShop();
@@ -2230,7 +2385,7 @@ function renderDiceGuide(){
   if (!els.diceGuideList) return;
   els.diceGuideList.innerHTML = shopItems.map(item => {
     const doc = diceDocs[item.id] || { detail: item.desc, example: 'Example: When the condition is true, this dice changes the score or money when you bank the target.' };
-    const ownedUpgraded = player && player.inv.includes(item.id) && isUpgraded(player,item.id);
+    const ownedUpgraded = player && (player.inv.includes(item.id) || (player.invertedInv||[]).includes(item.id)) && isUpgraded(player,item.id);
     const detail = ownedUpgraded ? displayItemDesc(player,item) : stripUpgradeCopy(doc.detail || item.desc);
     const example = ownedUpgraded
       ? (item.id === 'wog'
@@ -3035,6 +3190,19 @@ function clearHolds(){
 
 
 function normalizeSellSelection(player){
+  if (player.selectedSellIsInverted) {
+    const invInv = player.invertedInv || [];
+    if (!invInv.length) {
+      player.selectedSellIsInverted = false;
+      player.selectedSellIndex = null;
+      // Fall through to regular inv normalization
+    } else {
+      if (!Number.isInteger(player.selectedSellIndex) || player.selectedSellIndex < 0 || player.selectedSellIndex >= invInv.length) {
+        player.selectedSellIndex = invInv.length - 1;
+      }
+      return player.selectedSellIndex;
+    }
+  }
   if (!player.inv.length) {
     player.selectedSellIndex = null;
     return null;
@@ -3045,34 +3213,50 @@ function normalizeSellSelection(player){
   return player.selectedSellIndex;
 }
 
-function getSellRefund(player, index = normalizeSellSelection(player)){
-  if (index === null || index === undefined || !player.inv.length) return null;
-  const id = player.inv[index];
+function getSellRefund(player, index = normalizeSellSelection(player), forceInverted = null){
+  const isInverted = forceInverted !== null ? forceInverted : (player.selectedSellIsInverted || false);
+  const inv = isInverted ? (player.invertedInv || []) : player.inv;
+  if (index === null || index === undefined || !inv.length) return null;
+  const id = inv[index];
   const item = shopItems.find(it=>it.id===id);
   if (!item) return null;
   const paid = player.paid[id] ?? shopPrice(player,item);
   const refund = Math.max(0, Math.min(paid - 1, Math.floor(paid * 0.55)));
-  return { index, id, item, paid, refund };
+  return { index, id, item, paid, refund, isInverted };
 }
 
-function buyItem(itemId, btn){
+function buyItem(itemId, btn, isInverted = false){
   const player = activePlayer();
   const item = shopItems.find(it=>it.id===itemId);
   const cost = shopPrice(player,item);
-  if (!item || player.cash < cost || player.inv.length >= 6) return;
+  const ownedAll = new Set([...player.inv, ...(player.invertedInv || [])]);
+  if (!item || player.cash < cost) return;
+  if (!isInverted && player.inv.length >= 6) return;
+  if (ownedAll.has(itemId)) return;
   ensureAudio();
   player.cash -= cost;
-  player.inv.push(itemId);
-  player.selectedSellIndex = player.inv.length - 1;
+  if (isInverted) {
+    player.invertedInv = player.invertedInv || [];
+    player.invertedInv.push(itemId);
+    player.selectedSellIsInverted = true;
+    player.selectedSellIndex = player.invertedInv.length - 1;
+  } else {
+    player.inv.push(itemId);
+    player.selectedSellIsInverted = false;
+    player.selectedSellIndex = player.inv.length - 1;
+  }
   player.paid[itemId] = cost;
+  const stockIdx = player.stock.indexOf(itemId);
+  if (stockIdx >= 0 && player.stockInverted) player.stockInverted.splice(stockIdx, 1);
   player.stock = player.stock.filter(id => id !== itemId);
   if (itemId === 'rerollbaron') {
     const extra = extraRollAllowance(player);
     state.rollsLeft += extra;
     setMoment(item.emoji, 'Permanent reroll gained', `This turn and future turns get +${extra} extra roll${extra===1?'':'s'}.`);
   }
-  logLine(`Bought <b>${item.emoji} ${item.name}</b> for $${cost}. Effects apply to future scores only.`);
-  toast(`${item.emoji} ${item.name} bought!`, `${displayItemDesc(player,item)} Applies from your next scored turn, not retroactively.`);
+  const invertedNote = isInverted ? ' ✦ Inverted — uses no dice slot.' : '';
+  logLine(`Bought <b>${item.emoji} ${item.name}</b> for $${cost}.${invertedNote} Effects apply to future scores only.`);
+  toast(`${item.emoji} ${item.name} bought!${isInverted ? ' ✦ Inverted' : ''}`, `${displayItemDesc(player,item)}${isInverted ? ' This is an inverted dice — it uses no slot, so you can own more than 6.' : ' Applies from your next scored turn, not retroactively.'}`);
   sfx.buy();
   const rect = btn.getBoundingClientRect();
   burst(rect.left+30, rect.top+30, 34);
@@ -3357,7 +3541,7 @@ if (els.rollShopCashScoreBtn) els.rollShopCashScoreBtn.onclick = () => {
   player.cash -= cost;
   player.cashScoreRanks = (player.cashScoreRanks || 0) + 1;
   logLine(`<b>${player.name}</b> bought Cash-to-score rank <b>${player.cashScoreRanks}</b> for <b>$${cost}</b>.`);
-  setMoment('💸','Cash-to-score upgraded',`Every future bank adds ${player.cashScoreRanks * 10}% of your current cash balance to score before heat.`);
+  setMoment('💸','Cash-to-score upgraded',`Every future bank adds ${player.cashScoreRanks * 20}% of your current cash balance to score before heat.`);
   sfx.buy(); rollShopBurst(els.rollShopCashScoreBtn,'💸'); render();
 };
 if (els.rollShopExtraRollBtn) els.rollShopExtraRollBtn.onclick = () => {
@@ -3395,17 +3579,24 @@ els.sellLastBtn.onclick = () => {
   if (!sale) return;
   const salvageRolls = has(player,'salvager') && state.hasRolled && !state.scoring ? (isUpgraded(player,'salvager') ? 2 : 1) : 0;
   ensureAudio();
-  player.inv.splice(sale.index, 1);
+  if (sale.isInverted) {
+    player.invertedInv.splice(sale.index, 1);
+    if (!player.invertedInv.length) player.selectedSellIsInverted = false;
+    player.selectedSellIndex = player.invertedInv.length ? Math.min(sale.index, player.invertedInv.length - 1) : (player.inv.length ? player.inv.length - 1 : null);
+  } else {
+    player.inv.splice(sale.index, 1);
+    player.selectedSellIndex = player.inv.length ? Math.min(sale.index, player.inv.length - 1) : null;
+  }
   delete player.paid[sale.id];
   if (player.upgrades) delete player.upgrades[sale.id];
   player.cash += sale.refund;
-  player.selectedSellIndex = player.inv.length ? Math.min(sale.index, player.inv.length - 1) : null;
   if (salvageRolls) {
     state.rollsLeft += salvageRolls;
     setMoment('♻️','Salvage Roller triggered',`Selling ${sale.item.name} gave +${salvageRolls} roll${salvageRolls===1?'':'s'}.`);
     toast('♻️ Salvage roll gained', `+${salvageRolls} roll${salvageRolls===1?'':'s'} from selling a dice.`);
   }
-  logLine(`<b>${player.name}</b> sold <b>${sale.item.emoji} ${displayItemName(player, sale.item)}</b> for $${sale.refund}. Bought for $${sale.paid}. Shop stock stays the same.${salvageRolls ? ` Salvage Roller gave +${salvageRolls} roll${salvageRolls===1?'':'s'}.` : ''}`);
+  const invertedNote = sale.isInverted ? ' (inverted — was using no slot).' : '';
+  logLine(`<b>${player.name}</b> sold <b>${sale.item.emoji} ${displayItemName(player, sale.item)}</b> for $${sale.refund}${invertedNote} Bought for $${sale.paid}. Shop stock stays the same.${salvageRolls ? ` Salvage Roller gave +${salvageRolls} roll${salvageRolls===1?'':'s'}.` : ''}`);
   toast('Sold selected dice', `Sold ${sale.item.name} for +$${sale.refund}. Sell price is always lower than what you paid.`);
   sfx.score(sale.refund);
   render();
