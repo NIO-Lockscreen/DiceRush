@@ -125,22 +125,40 @@ function sig(entry) {
   ].join('|');
 }
 
+// Coarser key: same name + same score is redundant regardless of mode/game metadata.
+function nameScoreKey(entry) {
+  return `${cleanName(entry?.name).toLowerCase()}|${Math.floor(num(entry?.score, 0))}`;
+}
+
 function sortedTop(entries) {
-  const map = new Map();
+  // Pass 1 — dedupe by full signature (same game session, same mode/player slot).
+  const bySig = new Map();
 
   (Array.isArray(entries) ? entries : []).forEach((entry, index) => {
     const clean = cleanEntry(entry, index);
     if (!clean) return;
 
     const key = sig(clean);
-    const old = map.get(key);
+    const old = bySig.get(key);
 
     if (!old || String(clean.createdAt).localeCompare(String(old.createdAt)) < 0) {
-      map.set(key, clean);
+      bySig.set(key, clean);
     }
   });
 
-  return [...map.values()]
+  // Pass 2 — dedupe by name+score (same result across different modes/sessions); keep oldest.
+  const byNameScore = new Map();
+
+  [...bySig.values()].forEach((entry) => {
+    const key = nameScoreKey(entry);
+    const old = byNameScore.get(key);
+
+    if (!old || String(entry.createdAt).localeCompare(String(old.createdAt)) < 0) {
+      byNameScore.set(key, entry);
+    }
+  });
+
+  return [...byNameScore.values()]
     .sort((a, b) => {
       return Number(b.score || 0) - Number(a.score || 0)
         || String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
