@@ -32,6 +32,23 @@ function access() {
   return process.env.BLOB_ACCESS || 'private';
 }
 
+function adminPin() {
+  // Set LEADERBOARD_ADMIN_PIN in Vercel for a real private admin code.
+  // Fallback keeps the hidden Thomas admin mode usable without extra setup.
+  return String(process.env.LEADERBOARD_ADMIN_PIN || process.env.LEADERBOARD_ADMIN_KEY || 'Thomas');
+}
+
+function adminValueFromRequest(req, body) {
+  const headerValue = req?.headers?.['x-leaderboard-admin'] || req?.headers?.['X-Leaderboard-Admin'];
+  return String(body?.adminPin || body?.adminKey || body?.pin || headerValue || '');
+}
+
+function isAdminAuthorized(req, body) {
+  const expected = adminPin();
+  const provided = adminValueFromRequest(req, body);
+  return Boolean(expected && provided && provided === expected);
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -313,7 +330,7 @@ async function readBoard(blobSdk, pathname) {
   }
 }
 
-async function writeBoard(blobSdk, pathname, board, current, forceOverwrite = false) {
+async function writeBoard(blobSdk, pathname, board, current) {
   const payload = {
     leaderboard: compatBoard(board.scores || []),
     updatedAt: nowIso()
@@ -327,12 +344,7 @@ async function writeBoard(blobSdk, pathname, board, current, forceOverwrite = fa
     cacheControlMaxAge: 60
   };
 
-  if (forceOverwrite) {
-    // Last-resort fallback after repeated ETag conflicts.
-    // We still re-read and merge before this path, but we avoid getting stuck
-    // forever when Vercel returns a stale ETag under heavy multi-tab writes.
-    options.allowOverwrite = true;
-  } else if (current?.exists && current?.etag) {
+  if (current?.exists && current?.etag) {
     options.allowOverwrite = true;
     options.ifMatch = current.etag;
   } else if (current?.exists) {
@@ -479,21 +491,33 @@ async function mergeAndSave(incomingEntries) {
     }
   }
 
-  if (lastError && isRetryableWriteError(lastError)) {
-    // Final safety net for several tabs/devices writing at once.
-    // Re-read, merge again, then overwrite without ifMatch so the local score
-    // is not permanently stuck behind an ETag mismatch.
-    const current = await readBoard(blobSdk, pathname);
-    const nextBoard = compatBoard([
-      ...(current.board?.scores || []),
-      ...incoming
-    ]);
+  throw lastError || new Error('Could not save leaderboard after retries.');
+}
 
-    if (boardsEqual(current.board, nextBoard)) {
+
+async function deleteScoresFromBoard(deleteIds = [], deleteSignatures = []) {
+  const blobSdk = await sdk();
+  const pathname = await findExistingPath(blobSdk);
+  const ids = new Set((Array.isArray(deleteIds) ? deleteIds : []).map(value => String(value)));
+  const signatures = new Set((Array.isArray(deleteSignatures) ? deleteSignatures : []).map(value => String(value)));
+
+  if (!ids.size && !signatures.size) {
+    throw new Error('No leaderboard score selected for deletion.');
+  }
+
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt += 1) {
+    const current = await readBoard(blobSdk, pathname);
+    const before = current.board?.scores || [];
+    const kept = before.filter(entry => !ids.has(String(entry.id)) && !signatures.has(sig(entry)));
+    const nextBoard = compatBoard(kept);
+    const deletedCount = Math.max(0, before.length - nextBoard.scores.length);
+
+    if (!deletedCount) {
       return {
-        saved: false,
-        created: false,
-        attempts: MAX_WRITE_ATTEMPTS,
+        deleted: 0,
+        attempts: attempt,
         pathname,
         board: current.board,
         etag: current.etag,
@@ -501,20 +525,29 @@ async function mergeAndSave(incomingEntries) {
       };
     }
 
-    const written = await writeBoard(blobSdk, pathname, nextBoard, current, true);
+    try {
+      const written = await writeBoard(blobSdk, pathname, nextBoard, current);
 
-    return {
-      saved: true,
-      created: !current.exists,
-      attempts: MAX_WRITE_ATTEMPTS + 1,
-      pathname,
-      board: nextBoard,
-      etag: written?.etag || null,
-      updatedAt: nowIso()
-    };
+      return {
+        deleted: deletedCount,
+        attempts: attempt,
+        pathname,
+        board: nextBoard,
+        etag: written?.etag || null,
+        updatedAt: nowIso()
+      };
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableWriteError(error) || attempt >= MAX_WRITE_ATTEMPTS) {
+        break;
+      }
+
+      await sleep(75 * attempt + Math.floor(Math.random() * 125));
+    }
   }
 
-  throw lastError || new Error('Could not save leaderboard after retries.');
+  throw lastError || new Error('Could not delete leaderboard score after retries.');
 }
 
 async function readBody(req) {
@@ -577,6 +610,34 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = await readBody(req);
+
+      if (body?.action === 'deleteScore' || body?.adminAction === 'deleteScore') {
+        if (!isAdminAuthorized(req, body)) {
+          return sendJson(res, 403, {
+            ok: false,
+            online: true,
+            error: 'Admin mode denied'
+          });
+        }
+
+        const result = await deleteScoresFromBoard(body?.ids || body?.deleteIds || [], body?.signatures || body?.deleteSignatures || []);
+
+        return sendJson(res, 200, {
+          ok: true,
+          online: true,
+          admin: true,
+          deleted: result.deleted,
+          attempts: result.attempts || 0,
+          pathname: result.pathname,
+          leaderboard: result.board,
+          scores: result.board.scores,
+          single: result.board.single,
+          multiplayer: result.board.multiplayer,
+          count: result.board.scores.length,
+          updatedAt: result.updatedAt
+        });
+      }
+
       const result = await mergeAndSave(extractIncoming(body));
 
       return sendJson(res, 200, {
