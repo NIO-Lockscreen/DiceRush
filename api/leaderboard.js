@@ -1,85 +1,59 @@
-import { list, put } from '@vercel/blob';
+// /api/leaderboard.js
+// Robust Vercel Blob leaderboard endpoint with merge/retry logic.
+// Fixes ETag mismatch when several tabs/players save at the same time.
 
-const LEADERBOARD_PATH = 'dice-rush/leaderboard.json';
-const LEGACY_LEADERBOARD_PATHS = ['leaderboards/dice-rush-top10.json', 'leaderboards/dice-rush-shared-top10.json'];
-const MAX_ENTRIES = 10;
-const EMPTY_BOARD = { scores: [], updatedAt: null };
+const DEFAULT_PATH = 'leaderboard.json';
+const FALLBACK_PATHS = ['leaderboard.json', 'dice-rush-leaderboard.json', 'dice-rush/leaderboard.json'];
+const MAX_WRITE_ATTEMPTS = 8;
+const TOP_LIMIT = 10;
 
-function hasBlobToken() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+function blobAccess() {
+  return String(process.env.BLOB_ACCESS || 'public').toLowerCase() === 'private' ? 'private' : 'public';
 }
 
-function safeErrorMessage(error) {
-  return String(error?.message || error?.name || 'Unknown Blob error').slice(0, 180);
+function blobToken() {
+  return process.env.BLOB_READ_WRITE_TOKEN || undefined;
 }
 
-function leaderboardMeta(extra = {}) {
-  return {
-    storage: 'vercel-blob',
-    path: LEADERBOARD_PATH,
-    hasBlobToken: hasBlobToken(),
-    ...extra
-  };
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-function sendJson(res, status, payload) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.end(JSON.stringify(payload));
-}
-
-async function readBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string') return JSON.parse(req.body || '{}');
-
-  const chunks = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
-  const raw = Buffer.concat(chunks).toString('utf8');
-  return raw ? JSON.parse(raw) : {};
-}
-
 
 function cleanName(value, fallback = 'Player') {
   const name = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 24);
   return name || fallback;
 }
 
-function cleanMode(value, players) {
-  return value === 'multiplayer' || Number(players) >= 2 ? 'multiplayer' : 'single';
-}
-
-function cleanTargetMode(value) {
-  return value === 'pick' ? 'pick' : 'forced';
-}
-
-function cleanEntry(input) {
-  const score = Math.floor(Number(input?.score));
+function cleanEntry(entry, index = 0) {
+  const score = Math.floor(Number(entry?.score));
   if (!Number.isFinite(score) || score <= 0) return null;
 
-  const players = Math.max(1, Math.min(2, Math.floor(Number(input?.players || 1))));
-  const mode = cleanMode(input?.mode, players);
-  const playerNames = Array.isArray(input?.playerNames)
-    ? input.playerNames.map((name, index) => cleanName(name, `Player ${index + 1}`)).slice(0, 2)
+  const playersRaw = Math.floor(Number(entry?.players || 1));
+  const players = Math.max(1, Math.min(2, Number.isFinite(playersRaw) ? playersRaw : 1));
+  const mode = entry?.mode === 'multiplayer' || players >= 2 ? 'multiplayer' : 'single';
+  const createdAt = entry?.createdAt || new Date().toISOString();
+  const playerNames = Array.isArray(entry?.playerNames)
+    ? entry.playerNames.map((name, i) => cleanName(name, `Player ${i + 1}`)).slice(0, 2)
     : [];
 
   return {
-    id: String(input?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`),
-    name: cleanName(input?.name),
+    id: String(entry?.id || `server-${createdAt}-${index}-${Math.random().toString(36).slice(2, 8)}`),
+    name: cleanName(entry?.name, `Player ${index + 1}`),
     score,
     mode,
     players: mode === 'multiplayer' ? Math.max(2, players) : 1,
-    playerIndex: Math.max(1, Math.min(2, Math.floor(Number(input?.playerIndex || 1)))),
+    playerIndex: Math.max(1, Math.min(2, Math.floor(Number(entry?.playerIndex || index + 1)))),
     playerNames,
-    targetMode: cleanTargetMode(input?.targetMode),
-    createdAt: input?.createdAt || new Date().toISOString()
+    targetMode: entry?.targetMode === 'pick' ? 'pick' : 'forced',
+    createdAt
   };
 }
 
-function entrySignature(entry) {
+function signature(entry) {
   const playerNames = Array.isArray(entry?.playerNames)
-    ? entry.playerNames.map((name) => cleanName(name).toLowerCase()).join(' vs ')
+    ? entry.playerNames.map(name => cleanName(name).toLowerCase()).join(' vs ')
     : '';
+
   return [
     cleanName(entry?.name).toLowerCase(),
     Math.floor(Number(entry?.score || 0)),
@@ -91,232 +65,255 @@ function entrySignature(entry) {
   ].join('|');
 }
 
-function dedupeEntries(entries) {
+function sortedTop(entries) {
   const bySignature = new Map();
-  (entries || []).map(cleanEntry).filter(Boolean).forEach((entry) => {
-    const sig = entrySignature(entry);
+
+  (entries || []).forEach((entry, index) => {
+    const clean = cleanEntry(entry, index);
+    if (!clean) return;
+
+    const sig = signature(clean);
     const existing = bySignature.get(sig);
-    if (!existing || String(entry.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
-      bySignature.set(sig, entry);
+    if (!existing || String(clean.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
+      bySignature.set(sig, clean);
     }
   });
-  return [...bySignature.values()];
+
+  return [...bySignature.values()]
+    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0) || String(a.createdAt || '').localeCompare(String(b.createdAt || '')))
+    .slice(0, TOP_LIMIT);
 }
 
-function sortAndTrim(board) {
-  board.scores = dedupeEntries(Array.isArray(board.scores) ? board.scores : [])
-    .sort((a, b) => b.score - a.score || String(a.createdAt).localeCompare(String(b.createdAt)))
-    .slice(0, MAX_ENTRIES);
-  return board;
-}
+function normalizeBoard(payload) {
+  const board = payload?.leaderboard || payload || {};
 
-function normalizeBoard(board) {
-  // Migration support: older deploys stored separate single/multiplayer arrays.
-  const legacyScores = [
-    ...(Array.isArray(board?.single) ? board.single : []),
-    ...(Array.isArray(board?.multiplayer) ? board.multiplayer : [])
+  if (Array.isArray(board.scores)) {
+    return { scores: sortedTop(board.scores) };
+  }
+
+  const legacy = [
+    ...(Array.isArray(board.single) ? board.single : []),
+    ...(Array.isArray(board.multiplayer) ? board.multiplayer : [])
   ];
 
-  const next = {
-    scores: Array.isArray(board?.scores) ? board.scores : legacyScores,
-    updatedAt: board?.updatedAt || null
-  };
-
-  next.scores = dedupeEntries(next.scores);
-  return sortAndTrim(next);
+  return { scores: sortedTop(legacy) };
 }
 
-function lowestScore(entries) {
-  if (!entries.length || entries.length < MAX_ENTRIES) return -Infinity;
-  return Number(entries[entries.length - 1]?.score || 0);
+function boardsEqual(a, b) {
+  const aa = sortedTop(a?.scores || []).map(signature).join('\n');
+  const bb = sortedTop(b?.scores || []).map(signature).join('\n');
+  return aa === bb;
 }
 
-function mergeEntries(board, entries) {
-  const before = JSON.stringify(sortAndTrim({ scores: board.scores || [] }).scores);
-  const beforeSignatures = new Set((board.scores || []).map(entrySignature));
-  const accepted = [];
-
-  for (const entry of entries) {
-    const sig = entrySignature(entry);
-    const couldEnter = entry.score > lowestScore(board.scores || []);
-    if (couldEnter && !beforeSignatures.has(sig)) {
-      board.scores.push(entry);
-      beforeSignatures.add(sig);
-    }
-  }
-
-  sortAndTrim(board);
-  const after = JSON.stringify(board.scores);
-  const afterSignatures = new Set((board.scores || []).map(entrySignature));
-  const saved = before !== after;
-
-  for (const entry of entries) {
-    const sig = entrySignature(entry);
-    accepted.push({
-      id: entry.id,
-      name: entry.name,
-      score: entry.score,
-      mode: entry.mode,
-      saved: saved && afterSignatures.has(sig) && !JSON.parse(before).some((oldEntry) => entrySignature(oldEntry) === sig)
-    });
-  }
-
-  if (saved) board.updatedAt = new Date().toISOString();
-  return { board, saved, accepted };
+function isNotFound(error) {
+  const text = `${error?.name || ''} ${error?.message || ''}`.toLowerCase();
+  return error?.status === 404 || error?.statusCode === 404 || text.includes('notfound') || text.includes('not found');
 }
 
-// Read a blob by pathname using list() to find its URL, then fetch the content.
-// The etag from the list result is used for optimistic concurrency in saveBoard().
-// Private-store blobs require an Authorization header — public-store blobs ignore it.
-async function readBoardFromPath(path) {
-  // @vercel/blob has no get(); find the blob URL via list(), then fetch its content.
-  const { blobs } = await list({ prefix: path, limit: 1 });
-  const blobMeta = blobs.find((b) => b.pathname === path);
-  if (!blobMeta) return null;
-
-  const fetchHeaders = { 'cache': 'no-store' };
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    fetchHeaders['Authorization'] = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
-  }
-  const response = await fetch(blobMeta.url, { headers: fetchHeaders });
-  if (!response.ok) return null;
-
-  const etag = response.headers.get('etag') || null;
-  const text = await response.text();
-  const parsed = text ? JSON.parse(text) : EMPTY_BOARD;
-  return { board: normalizeBoard(parsed), etag, path };
+function isRetryableBlobWriteError(error) {
+  const text = `${error?.name || ''} ${error?.message || ''}`.toLowerCase();
+  return error?.status === 409 ||
+    error?.statusCode === 409 ||
+    error?.status === 412 ||
+    error?.statusCode === 412 ||
+    text.includes('precondition') ||
+    text.includes('etag') ||
+    text.includes('already exists') ||
+    text.includes('conflict');
 }
 
-async function loadBoard() {
-  // Wrap the primary read in a try-catch so a transient read error (e.g. CDN hiccup)
-  // returns an empty board rather than blocking the entire POST with a 500.
-  let board;
-  let etag = null;
-  try {
-    const primary = await readBoardFromPath(LEADERBOARD_PATH);
-    board = primary ? primary.board : { ...EMPTY_BOARD, scores: [] };
-    etag = primary ? primary.etag : null;
-  } catch (readError) {
-    // If we can't read the existing board, start from scratch for this request.
-    // The missing ifMatch means the write will succeed unconditionally (last write wins).
-    board = { ...EMPTY_BOARD, scores: [] };
-    etag = null;
-  }
+async function getBlobSdk() {
+  return import('@vercel/blob');
+}
 
-  for (const legacyPath of LEGACY_LEADERBOARD_PATHS) {
+async function resolvePath(sdk) {
+  if (process.env.LEADERBOARD_BLOB_PATH) return process.env.LEADERBOARD_BLOB_PATH;
+
+  const options = { token: blobToken() };
+  for (const pathname of FALLBACK_PATHS) {
     try {
-      const legacy = await readBoardFromPath(legacyPath);
-      if (legacy?.board?.scores?.length) {
-        board.scores.push(...legacy.board.scores);
-        board.updatedAt = board.updatedAt || legacy.board.updatedAt || null;
-      }
+      await sdk.head(pathname, options);
+      return pathname;
     } catch (error) {
-      // Ignore missing or unreadable legacy paths.
+      if (!isNotFound(error)) continue;
     }
   }
 
-  board = sortAndTrim(board);
-  return { board, etag };
+  return DEFAULT_PATH;
 }
 
-async function saveBoard(board, etag) {
-  const options = {
-    // Use 'private' to match private-store Blob accounts.
-    // Public-store accounts accept 'public' here, but private stores reject it.
-    access: 'private',
-    allowOverwrite: true,
-    addRandomSuffix: false,
-    contentType: 'application/json',
-    cacheControlMaxAge: 0
-  };
-
-  if (etag) options.ifMatch = etag;
-  await put(LEADERBOARD_PATH, JSON.stringify(board, null, 2), options);
-}
-
-export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') return sendJson(res, 200, { ok: true });
-
-  // Fail fast with a clear message when the Blob token is missing so the error
-  // is actionable rather than a cryptic "Unknown Blob error".
-  if (!hasBlobToken()) {
-    return sendJson(res, 503, {
-      ok: false,
-      error: 'Leaderboard unavailable',
-      detail: 'BLOB_READ_WRITE_TOKEN is not configured. Add it in your Vercel project → Storage → Connect Store, or set it manually in Environment Variables.',
-      meta: leaderboardMeta()
-    });
+async function streamToText(stream) {
+  if (!stream) return '';
+  if (typeof Response !== 'undefined') {
+    return new Response(stream).text();
   }
 
-  if (req.method === 'GET') {
-    try {
-      const { board } = await loadBoard();
-      return sendJson(res, 200, {
-        ok: true,
-        leaderboard: board,
-        meta: leaderboardMeta({ count: board.scores.length, updatedAt: board.updatedAt })
-      });
-    } catch (error) {
-      return sendJson(res, 503, {
-        ok: false,
-        error: 'Leaderboard unavailable',
-        detail: safeErrorMessage(error),
-        meta: leaderboardMeta()
-      });
+  const reader = stream.getReader();
+  const chunks = [];
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+async function readCurrentBoard(sdk, pathname) {
+  const access = blobAccess();
+  const token = blobToken();
+
+  if (typeof sdk.get === 'function') {
+    const result = await sdk.get(pathname, { access, token });
+    if (!result || result.statusCode === 404) {
+      return { exists: false, etag: null, board: { scores: [] } };
     }
+    if (result.statusCode !== 200) {
+      return { exists: true, etag: result.blob?.etag || null, board: { scores: [] } };
+    }
+
+    const text = await streamToText(result.stream);
+    let parsed = {};
+    try { parsed = text ? JSON.parse(text) : {}; } catch (_) { parsed = {}; }
+
+    return {
+      exists: true,
+      etag: result.blob?.etag || null,
+      board: normalizeBoard(parsed)
+    };
   }
 
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'GET, POST, OPTIONS');
-    return sendJson(res, 405, { error: 'Method not allowed' });
-  }
-
-  let body = {};
   try {
-    body = await readBody(req);
+    const meta = await sdk.head(pathname, { token });
+    const response = await fetch(`${meta.url}${meta.url.includes('?') ? '&' : '?'}t=${Date.now()}`, { cache: 'no-store' });
+    const parsed = await response.json().catch(() => ({}));
+    return { exists: true, etag: meta.etag || null, board: normalizeBoard(parsed) };
   } catch (error) {
-    return sendJson(res, 400, { error: 'Invalid JSON' });
-  }
-
-  const rawEntries = Array.isArray(body.entries) ? body.entries : [body];
-  const entries = rawEntries.map(cleanEntry).filter(Boolean).slice(0, MAX_ENTRIES);
-  if (!entries.length) return sendJson(res, 400, { error: 'No valid scores submitted' });
-
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    try {
-      const { board, etag } = await loadBoard();
-      const merged = mergeEntries(board, entries);
-
-      if (!merged.saved) {
-        return sendJson(res, 200, {
-          ok: true,
-          saved: false,
-          accepted: merged.accepted,
-          leaderboard: merged.board,
-          meta: leaderboardMeta({ count: merged.board.scores.length, updatedAt: merged.board.updatedAt })
-        });
-      }
-
-      await saveBoard(merged.board, etag);
-      return sendJson(res, 200, {
-        ok: true,
-        saved: true,
-        accepted: merged.accepted,
-        leaderboard: merged.board,
-        meta: leaderboardMeta({ count: merged.board.scores.length, updatedAt: merged.board.updatedAt })
-      });
-    } catch (error) {
-      const message = String(error?.message || error?.name || '');
-      const retryable = /Precondition|ifMatch|etag|condition/i.test(message);
-      if (!retryable || attempt === 3) {
-        return sendJson(res, 500, {
-          ok: false,
-          error: 'Could not save leaderboard score',
-          detail: safeErrorMessage(error),
-          meta: leaderboardMeta()
-        });
-      }
-      await new Promise((resolve) => setTimeout(resolve, 80 + attempt * 120));
-    }
+    if (isNotFound(error)) return { exists: false, etag: null, board: { scores: [] } };
+    throw error;
   }
 }
+
+async function writeBoard(sdk, pathname, board, etag) {
+  const options = {
+    access: blobAccess(),
+    token: blobToken(),
+    contentType: 'application/json',
+    cacheControlMaxAge: 60,
+    addRandomSuffix: false
+  };
+
+  if (etag) {
+    options.allowOverwrite = true;
+    options.ifMatch = etag;
+  } else {
+    options.allowOverwrite = false;
+  }
+
+  return sdk.put(pathname, JSON.stringify({ leaderboard: board, updatedAt: new Date().toISOString() }, null, 2), options);
+}
+
+function extractIncomingEntries(body) {
+  if (Array.isArray(body)) return body;
+  if (Array.isArray(body?.entries)) return body.entries;
+  if (Array.isArray(body?.scores)) return body.scores;
+  if (Array.isArray(body?.leaderboard?.scores)) return body.leaderboard.scores;
+  if (body?.entry) return [body.entry];
+  return [];
+}
+
+async function mergeAndSave(incomingEntries) {
+  const sdk = await getBlobSdk();
+  const pathname = await resolvePath(sdk);
+  const incoming = sortedTop(incomingEntries);
+
+  if (!incoming.length) {
+    const current = await readCurrentBoard(sdk, pathname);
+    return { saved: false, attempts: 0, pathname, board: current.board, etag: current.etag };
+  }
+
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt += 1) {
+    const current = await readCurrentBoard(sdk, pathname);
+    const nextBoard = { scores: sortedTop([...(current.board?.scores || []), ...incoming]) };
+
+    if (boardsEqual(current.board, nextBoard)) {
+      return { saved: false, attempts: attempt, pathname, board: current.board, etag: current.etag };
+    }
+
+    try {
+      const written = await writeBoard(sdk, pathname, nextBoard, current.etag);
+      return { saved: true, attempts: attempt, pathname, board: nextBoard, etag: written?.etag || null };
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableBlobWriteError(error) || attempt === MAX_WRITE_ATTEMPTS) break;
+
+      await sleep(50 * attempt + Math.floor(Math.random() * 80));
+    }
+  }
+
+  throw lastError || new Error('Could not save leaderboard score.');
+}
+
+async function readRequestBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  if (typeof req.body === 'string') {
+    try { return JSON.parse(req.body || '{}'); } catch (_) { return {}; }
+  }
+
+  let raw = '';
+  for await (const chunk of req) raw += chunk;
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch (_) { return {}; }
+}
+
+function sendJson(res, statusCode, payload) {
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.end(JSON.stringify(payload));
+}
+
+module.exports = async function handler(req, res) {
+  try {
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Allow', 'GET,POST,OPTIONS');
+      return sendJson(res, 204, {});
+    }
+
+    if (req.method === 'GET') {
+      const sdk = await getBlobSdk();
+      const pathname = await resolvePath(sdk);
+      const current = await readCurrentBoard(sdk, pathname);
+      return sendJson(res, 200, {
+        leaderboard: current.board,
+        etag: current.etag,
+        pathname,
+        loaded: true
+      });
+    }
+
+    if (req.method === 'POST') {
+      const body = await readRequestBody(req);
+      const result = await mergeAndSave(extractIncomingEntries(body));
+      return sendJson(res, 200, {
+        saved: result.saved,
+        merged: true,
+        attempts: result.attempts,
+        leaderboard: result.board,
+        etag: result.etag,
+        pathname: result.pathname
+      });
+    }
+
+    res.setHeader('Allow', 'GET,POST,OPTIONS');
+    return sendJson(res, 405, { error: 'Method not allowed' });
+  } catch (error) {
+    return sendJson(res, 500, {
+      error: 'Could not save leaderboard score.',
+      detail: error?.message || String(error)
+    });
+  }
+};
