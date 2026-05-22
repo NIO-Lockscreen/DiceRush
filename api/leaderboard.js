@@ -1,364 +1,675 @@
-import { list, put } from '@vercel/blob';
+// /api/leaderboard.js
+// Dice Rush leaderboard — Vercel Blob private store.
+// Fixes:
+// - Blob not found should not crash.
+// - Private Blob store uses access: "private".
+// - Multiple tabs/devices can save at same time with merge + ETag retry.
 
-const LEADERBOARD_PATH = 'dice-rush/leaderboard.json';
-const LEGACY_LEADERBOARD_PATHS = ['leaderboards/dice-rush-top10.json', 'leaderboards/dice-rush-shared-top10.json'];
-const MAX_ENTRIES = 10;
-const EMPTY_BOARD = { scores: [], updatedAt: null };
+const DEFAULT_PATH = 'leaderboard.json';
 
-function hasBlobToken() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+const FALLBACK_PATHS = [
+  'leaderboard.json',
+  'dice-rush-leaderboard.json',
+  'dice-rush/leaderboard.json'
+];
+
+const TOP_LIMIT = 10;
+const MAX_WRITE_ATTEMPTS = 8;
+
+let sdkPromise = null;
+
+async function sdk() {
+  if (!sdkPromise) sdkPromise = import('@vercel/blob');
+  return sdkPromise;
 }
 
-function safeErrorMessage(error) {
-  return String(error?.message || error?.name || 'Unknown Blob error').slice(0, 180);
+function token() {
+  return process.env.BLOB_READ_WRITE_TOKEN || undefined;
 }
 
-function leaderboardMeta(extra = {}) {
-  return {
-    storage: 'vercel-blob',
-    path: LEADERBOARD_PATH,
-    hasBlobToken: hasBlobToken(),
-    ...extra
-  };
+// Your store is Private. Keep this as private unless you intentionally make a public Blob store.
+function access() {
+  return process.env.BLOB_ACCESS || 'private';
 }
 
-function sendJson(res, status, payload) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.end(JSON.stringify(payload));
+function adminPin() {
+  // Set LEADERBOARD_ADMIN_PIN in Vercel for a real private admin code.
+  // Fallback keeps the hidden Thomas admin mode usable without extra setup.
+  return String(process.env.LEADERBOARD_ADMIN_PIN || process.env.LEADERBOARD_ADMIN_KEY || 'Thomas');
 }
 
-async function readBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string') return JSON.parse(req.body || '{}');
-
-  const chunks = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
-  const raw = Buffer.concat(chunks).toString('utf8');
-  return raw ? JSON.parse(raw) : {};
+function adminValueFromRequest(req, body) {
+  const headerValue = req?.headers?.['x-leaderboard-admin'] || req?.headers?.['X-Leaderboard-Admin'];
+  return String(body?.adminPin || body?.adminKey || body?.pin || headerValue || '');
 }
 
+function isAdminAuthorized(req, body) {
+  const expected = adminPin();
+  const provided = adminValueFromRequest(req, body);
+  return Boolean(expected && provided && provided === expected);
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function parseJson(text) {
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
 
 function cleanName(value, fallback = 'Player') {
-  const name = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  const name = String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 24);
+
   return name || fallback;
 }
 
-function cleanMode(value, players) {
-  return value === 'multiplayer' || Number(players) >= 2 ? 'multiplayer' : 'single';
+function num(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-function cleanTargetMode(value) {
-  return value === 'pick' ? 'pick' : 'forced';
-}
+function cleanEntry(entry, index = 0) {
+  if (!entry || typeof entry !== 'object') return null;
 
-function cleanEntry(input) {
-  const score = Math.floor(Number(input?.score));
+  const score = Math.floor(num(entry.score, 0));
   if (!Number.isFinite(score) || score <= 0) return null;
 
-  const players = Math.max(1, Math.min(2, Math.floor(Number(input?.players || 1))));
-  const mode = cleanMode(input?.mode, players);
-  const playerNames = Array.isArray(input?.playerNames)
-    ? input.playerNames.map((name, index) => cleanName(name, `Player ${index + 1}`)).slice(0, 2)
+  const rawPlayers = Math.floor(num(entry.players, 1));
+  const players = Math.max(1, Math.min(2, rawPlayers));
+  const mode = entry.mode === 'multiplayer' || players >= 2 ? 'multiplayer' : 'single';
+
+  const playerNames = Array.isArray(entry.playerNames)
+    ? entry.playerNames.map((name, i) => cleanName(name, `Player ${i + 1}`)).slice(0, 2)
     : [];
 
+  const createdAt = String(entry.createdAt || entry.timestamp || nowIso());
+
   return {
-    id: String(input?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`),
-    name: cleanName(input?.name),
+    ...entry,
+    id: String(entry.id || `server-${createdAt}-${index}-${Math.random().toString(36).slice(2, 8)}`),
+    name: cleanName(entry.name, `Player ${index + 1}`),
     score,
     mode,
     players: mode === 'multiplayer' ? Math.max(2, players) : 1,
-    playerIndex: Math.max(1, Math.min(2, Math.floor(Number(input?.playerIndex || 1)))),
+    playerIndex: Math.max(1, Math.min(2, Math.floor(num(entry.playerIndex, index + 1)))),
     playerNames,
-    targetMode: cleanTargetMode(input?.targetMode),
-    createdAt: input?.createdAt || new Date().toISOString()
+    targetMode: entry.targetMode === 'pick' ? 'pick' : 'forced',
+    createdAt
   };
 }
 
-function entrySignature(entry) {
-  const playerNames = Array.isArray(entry?.playerNames)
-    ? entry.playerNames.map((name) => cleanName(name).toLowerCase()).join(' vs ')
+function sig(entry) {
+  const playerNames = Array.isArray(entry.playerNames)
+    ? entry.playerNames.map(name => cleanName(name).toLowerCase()).join(' vs ')
     : '';
+
   return [
-    cleanName(entry?.name).toLowerCase(),
-    Math.floor(Number(entry?.score || 0)),
-    entry?.mode === 'multiplayer' ? 'multi' : 'single',
-    Number(entry?.players || 1),
-    Number(entry?.playerIndex || 1),
-    entry?.targetMode === 'pick' ? 'pick' : 'forced',
+    cleanName(entry.name).toLowerCase(),
+    Math.floor(num(entry.score, 0)),
+    entry.mode === 'multiplayer' ? 'multi' : 'single',
+    Math.floor(num(entry.players, 1)),
+    Math.floor(num(entry.playerIndex, 1)),
+    entry.targetMode === 'pick' ? 'pick' : 'forced',
     playerNames
   ].join('|');
 }
 
-// Coarser key: same player name + same score = redundant, regardless of mode/game details.
-function nameScoreKey(entry) {
-  return `${cleanName(entry?.name).toLowerCase()}|${Math.floor(Number(entry?.score || 0))}`;
-}
+function sortedTop(entries) {
+  const map = new Map();
 
-function dedupeEntries(entries) {
-  // Pass 1 – collapse exact-same-game duplicates (full signature); keep the oldest.
-  const bySignature = new Map();
-  (entries || []).map(cleanEntry).filter(Boolean).forEach((entry) => {
-    const sig = entrySignature(entry);
-    const existing = bySignature.get(sig);
-    if (!existing || String(entry.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
-      bySignature.set(sig, entry);
+  (Array.isArray(entries) ? entries : []).forEach((entry, index) => {
+    const clean = cleanEntry(entry, index);
+    if (!clean) return;
+
+    const key = sig(clean);
+    const old = map.get(key);
+
+    if (!old || String(clean.createdAt).localeCompare(String(old.createdAt)) < 0) {
+      map.set(key, clean);
     }
   });
 
-  // Pass 2 – collapse same name+score regardless of mode/game metadata; keep the oldest.
-  const byNameScore = new Map();
-  [...bySignature.values()].forEach((entry) => {
-    const key = nameScoreKey(entry);
-    const existing = byNameScore.get(key);
-    if (!existing || String(entry.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
-      byNameScore.set(key, entry);
-    }
-  });
-
-  return [...byNameScore.values()];
+  return [...map.values()]
+    .sort((a, b) => {
+      return Number(b.score || 0) - Number(a.score || 0)
+        || String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+    })
+    .slice(0, TOP_LIMIT);
 }
 
-function sortAndTrim(board) {
-  board.scores = dedupeEntries(Array.isArray(board.scores) ? board.scores : [])
-    .sort((a, b) => b.score - a.score || String(a.createdAt).localeCompare(String(b.createdAt)))
-    .slice(0, MAX_ENTRIES);
-  return board;
-}
+function compatBoard(entries) {
+  const scores = sortedTop(entries);
 
-function normalizeBoard(board) {
-  // Migration support: older deploys stored separate single/multiplayer arrays.
-  const legacyScores = [
-    ...(Array.isArray(board?.single) ? board.single : []),
-    ...(Array.isArray(board?.multiplayer) ? board.multiplayer : [])
-  ];
-
-  const next = {
-    scores: Array.isArray(board?.scores) ? board.scores : legacyScores,
-    updatedAt: board?.updatedAt || null
+  return {
+    scores,
+    single: scores.filter(entry => entry.mode !== 'multiplayer'),
+    multiplayer: scores.filter(entry => entry.mode === 'multiplayer')
   };
-
-  next.scores = dedupeEntries(next.scores);
-  return sortAndTrim(next);
 }
 
-function lowestScore(entries) {
-  if (!entries.length || entries.length < MAX_ENTRIES) return -Infinity;
-  return Number(entries[entries.length - 1]?.score || 0);
+function normalizeBoard(payload) {
+  if (Array.isArray(payload)) return compatBoard(payload);
+
+  const root = payload && typeof payload === 'object' ? payload : {};
+  const board = root.leaderboard && typeof root.leaderboard === 'object'
+    ? root.leaderboard
+    : root;
+
+  if (Array.isArray(board.scores)) {
+    return compatBoard(board.scores);
+  }
+
+  const combined = [];
+
+  if (Array.isArray(board.single)) {
+    combined.push(...board.single.map(entry => ({ ...entry, mode: entry.mode || 'single' })));
+  }
+
+  if (Array.isArray(board.multiplayer)) {
+    combined.push(...board.multiplayer.map(entry => ({ ...entry, mode: 'multiplayer' })));
+  }
+
+  return compatBoard(combined);
 }
 
-function mergeEntries(board, entries) {
-  const before = JSON.stringify(sortAndTrim({ scores: board.scores || [] }).scores);
-  // Track both the full signature and the coarse name+score key so concurrent retries
-  // and same-score resubmissions are both blocked from creating duplicate rows.
-  const beforeSignatures = new Set((board.scores || []).map(entrySignature));
-  const beforeNameScores = new Set((board.scores || []).map(nameScoreKey));
-  const accepted = [];
-
-  for (const entry of entries) {
-    const sig = entrySignature(entry);
-    const nsKey = nameScoreKey(entry);
-    const couldEnter = entry.score > lowestScore(board.scores || []);
-    // Reject if: score can't reach the leaderboard, already present by full signature,
-    // or already present by name+score (identical result from a different game session).
-    if (couldEnter && !beforeSignatures.has(sig) && !beforeNameScores.has(nsKey)) {
-      board.scores.push(entry);
-      beforeSignatures.add(sig);
-      beforeNameScores.add(nsKey);
-    }
-  }
-
-  sortAndTrim(board);
-  const after = JSON.stringify(board.scores);
-  const afterSignatures = new Set((board.scores || []).map(entrySignature));
-  const afterNameScores = new Set((board.scores || []).map(nameScoreKey));
-  const saved = before !== after;
-
-  const parsedBefore = JSON.parse(before);
-  for (const entry of entries) {
-    const sig = entrySignature(entry);
-    const nsKey = nameScoreKey(entry);
-    const wasAlreadyPresent =
-      parsedBefore.some((old) => entrySignature(old) === sig || nameScoreKey(old) === nsKey);
-    accepted.push({
-      id: entry.id,
-      name: entry.name,
-      score: entry.score,
-      mode: entry.mode,
-      saved: saved && (afterSignatures.has(sig) || afterNameScores.has(nsKey)) && !wasAlreadyPresent
-    });
-  }
-
-  if (saved) board.updatedAt = new Date().toISOString();
-  return { board, saved, accepted };
+function boardsEqual(a, b) {
+  return sortedTop(a?.scores || []).map(sig).join('\n') ===
+    sortedTop(b?.scores || []).map(sig).join('\n');
 }
 
-// Read a blob by pathname using list() to find its URL, then fetch the content.
-// The etag from the list result is used for optimistic concurrency in saveBoard().
-// Private-store blobs require an Authorization header — public-store blobs ignore it.
-async function readBoardFromPath(path) {
-  // @vercel/blob has no get(); find the blob URL via list(), then fetch its content.
-  const { blobs } = await list({ prefix: path, limit: 1 });
-  const blobMeta = blobs.find((b) => b.pathname === path);
-  if (!blobMeta) return null;
-
-  const fetchHeaders = {
-    // Force CDN bypass so we always get the current ETag from storage.
-    // Note: these are HTTP *request* headers, and `cache` is a separate fetch option below.
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache'
-  };
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    fetchHeaders['Authorization'] = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
-  }
-  // `cache: 'no-store'` must be a fetch *option*, not a header.
-  // Previously it was incorrectly placed inside the headers object and had no effect.
-  const response = await fetch(blobMeta.url, { headers: fetchHeaders, cache: 'no-store' });
-  if (!response.ok) return null;
-
-  const etag = response.headers.get('etag') || null;
-  const text = await response.text();
-  const parsed = text ? JSON.parse(text) : EMPTY_BOARD;
-  return { board: normalizeBoard(parsed), etag, path };
+function textOfError(error) {
+  return String(
+    `${error?.name || ''} ${error?.message || ''} ${error?.status || ''} ${error?.statusCode || ''}`
+  ).toLowerCase();
 }
 
-async function loadBoard() {
-  // Wrap the primary read in a try-catch so a transient read error (e.g. CDN hiccup)
-  // returns an empty board rather than blocking the entire POST with a 500.
-  let board;
-  let etag = null;
-  try {
-    const primary = await readBoardFromPath(LEADERBOARD_PATH);
-    board = primary ? primary.board : { ...EMPTY_BOARD, scores: [] };
-    etag = primary ? primary.etag : null;
-  } catch (readError) {
-    // If we can't read the existing board, start from scratch for this request.
-    // The missing ifMatch means the write will succeed unconditionally (last write wins).
-    board = { ...EMPTY_BOARD, scores: [] };
-    etag = null;
+function isNotFound(error) {
+  const text = textOfError(error);
+
+  return error?.status === 404 ||
+    error?.statusCode === 404 ||
+    text.includes('404') ||
+    text.includes('notfound') ||
+    text.includes('not found') ||
+    text.includes('does not exist') ||
+    text.includes('blobnotfound');
+}
+
+function isRetryableWriteError(error) {
+  const text = textOfError(error);
+
+  return error?.status === 409 ||
+    error?.statusCode === 409 ||
+    error?.status === 412 ||
+    error?.statusCode === 412 ||
+    text.includes('etag') ||
+    text.includes('precondition') ||
+    text.includes('conflict') ||
+    text.includes('already exists') ||
+    text.includes('blobpreconditionfailederror');
+}
+
+async function findExistingPath(blobSdk) {
+  if (process.env.LEADERBOARD_BLOB_PATH) {
+    return process.env.LEADERBOARD_BLOB_PATH;
   }
 
-  for (const legacyPath of LEGACY_LEADERBOARD_PATHS) {
+  for (const pathname of FALLBACK_PATHS) {
     try {
-      const legacy = await readBoardFromPath(legacyPath);
-      if (legacy?.board?.scores?.length) {
-        board.scores.push(...legacy.board.scores);
-        board.updatedAt = board.updatedAt || legacy.board.updatedAt || null;
-      }
+      await blobSdk.head(pathname, { token: token() });
+      return pathname;
     } catch (error) {
-      // Ignore missing or unreadable legacy paths.
+      if (!isNotFound(error)) throw error;
     }
   }
 
-  board = sortAndTrim(board);
-  return { board, etag };
+  // If an older version created a random-suffix blob, try to find it.
+  if (typeof blobSdk.list === 'function') {
+    try {
+      const result = await blobSdk.list({
+        token: token(),
+        limit: 1000
+      });
+
+      const blobs = Array.isArray(result?.blobs) ? result.blobs : [];
+
+      const candidates = blobs
+        .filter(blob => {
+          const path = String(blob.pathname || '').toLowerCase();
+          return path.includes('leaderboard') && path.endsWith('.json');
+        })
+        .sort((a, b) => {
+          return new Date(b.uploadedAt || 0).getTime() - new Date(a.uploadedAt || 0).getTime();
+        });
+
+      if (candidates[0]?.pathname) {
+        return candidates[0].pathname;
+      }
+    } catch {
+      // Listing is only a fallback. Ignore and use default path.
+    }
+  }
+
+  return DEFAULT_PATH;
 }
 
-async function saveBoard(board, etag) {
-  const options = {
-    // Use 'private' to match private-store Blob accounts.
-    // Public-store accounts accept 'public' here, but private stores reject it.
-    access: 'private',
-    allowOverwrite: true,
-    addRandomSuffix: false,
-    contentType: 'application/json',
-    cacheControlMaxAge: 0
+async function streamToText(stream) {
+  if (!stream) return '';
+
+  if (typeof Response !== 'undefined') {
+    return new Response(stream).text();
+  }
+
+  const reader = stream.getReader();
+  const chunks = [];
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    chunks.push(Buffer.from(value));
+  }
+
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+async function readBoard(blobSdk, pathname) {
+  if (typeof blobSdk.get !== 'function') {
+    throw new Error('@vercel/blob is too old. Update package.json to use @vercel/blob >= 2.3.0 for private Blob stores.');
+  }
+
+  try {
+    const result = await blobSdk.get(pathname, {
+      access: access(),
+      token: token()
+    });
+
+    if (!result || result.statusCode === 404) {
+      return {
+        exists: false,
+        etag: null,
+        board: compatBoard([]),
+        updatedAt: null
+      };
+    }
+
+    if (result.statusCode !== 200) {
+      throw new Error(`Blob get failed with status ${result.statusCode}`);
+    }
+
+    const text = await streamToText(result.stream);
+    const parsed = parseJson(text);
+
+    return {
+      exists: true,
+      etag: result.blob?.etag || result.headers?.get?.('etag') || null,
+      board: normalizeBoard(parsed),
+      updatedAt: parsed.updatedAt || null
+    };
+  } catch (error) {
+    if (isNotFound(error)) {
+      return {
+        exists: false,
+        etag: null,
+        board: compatBoard([]),
+        updatedAt: null
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function writeBoard(blobSdk, pathname, board, current) {
+  const payload = {
+    leaderboard: compatBoard(board.scores || []),
+    updatedAt: nowIso()
   };
 
-  if (etag) options.ifMatch = etag;
-  await put(LEADERBOARD_PATH, JSON.stringify(board, null, 2), options);
+  const options = {
+    access: access(),
+    token: token(),
+    contentType: 'application/json',
+    addRandomSuffix: false,
+    cacheControlMaxAge: 60
+  };
+
+  if (current?.exists && current?.etag) {
+    options.allowOverwrite = true;
+    options.ifMatch = current.etag;
+  } else if (current?.exists) {
+    options.allowOverwrite = true;
+  } else {
+    options.allowOverwrite = false;
+  }
+
+  return blobSdk.put(pathname, JSON.stringify(payload, null, 2), options);
+}
+
+function extractIncoming(body) {
+  if (Array.isArray(body)) return body;
+  if (!body || typeof body !== 'object') return [];
+
+  if (Array.isArray(body.entries)) return body.entries;
+  if (Array.isArray(body.scores)) return body.scores;
+
+  if (body.leaderboard && Array.isArray(body.leaderboard.scores)) {
+    return body.leaderboard.scores;
+  }
+
+  const combined = [];
+
+  if (Array.isArray(body.single)) {
+    combined.push(...body.single.map(entry => ({ ...entry, mode: entry.mode || 'single' })));
+  }
+
+  if (Array.isArray(body.multiplayer)) {
+    combined.push(...body.multiplayer.map(entry => ({ ...entry, mode: 'multiplayer' })));
+  }
+
+  if (body.leaderboard && Array.isArray(body.leaderboard.single)) {
+    combined.push(...body.leaderboard.single.map(entry => ({ ...entry, mode: entry.mode || 'single' })));
+  }
+
+  if (body.leaderboard && Array.isArray(body.leaderboard.multiplayer)) {
+    combined.push(...body.leaderboard.multiplayer.map(entry => ({ ...entry, mode: 'multiplayer' })));
+  }
+
+  if (combined.length) return combined;
+  if (body.entry) return [body.entry];
+  if (body.score !== undefined) return [body];
+
+  return [];
+}
+
+async function ensureBoardExists(blobSdk, pathname) {
+  const current = await readBoard(blobSdk, pathname);
+
+  if (current.exists) {
+    return {
+      saved: false,
+      created: false,
+      pathname,
+      board: current.board,
+      etag: current.etag,
+      updatedAt: current.updatedAt
+    };
+  }
+
+  try {
+    const empty = compatBoard([]);
+    const written = await writeBoard(blobSdk, pathname, empty, current);
+
+    return {
+      saved: true,
+      created: true,
+      pathname,
+      board: empty,
+      etag: written?.etag || null,
+      updatedAt: nowIso()
+    };
+  } catch (error) {
+    // Another tab may have created it at the same time.
+    if (isRetryableWriteError(error)) {
+      const reread = await readBoard(blobSdk, pathname);
+
+      return {
+        saved: false,
+        created: false,
+        pathname,
+        board: reread.board,
+        etag: reread.etag,
+        updatedAt: reread.updatedAt
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function mergeAndSave(incomingEntries) {
+  const blobSdk = await sdk();
+  const pathname = await findExistingPath(blobSdk);
+  const incoming = sortedTop(incomingEntries);
+
+  if (!incoming.length) {
+    return ensureBoardExists(blobSdk, pathname);
+  }
+
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt += 1) {
+    const current = await readBoard(blobSdk, pathname);
+
+    const nextBoard = compatBoard([
+      ...(current.board?.scores || []),
+      ...incoming
+    ]);
+
+    if (boardsEqual(current.board, nextBoard)) {
+      return {
+        saved: false,
+        created: false,
+        attempts: attempt,
+        pathname,
+        board: current.board,
+        etag: current.etag,
+        updatedAt: current.updatedAt
+      };
+    }
+
+    try {
+      const written = await writeBoard(blobSdk, pathname, nextBoard, current);
+
+      return {
+        saved: true,
+        created: !current.exists,
+        attempts: attempt,
+        pathname,
+        board: nextBoard,
+        etag: written?.etag || null,
+        updatedAt: nowIso()
+      };
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableWriteError(error) || attempt >= MAX_WRITE_ATTEMPTS) {
+        break;
+      }
+
+      await sleep(75 * attempt + Math.floor(Math.random() * 125));
+    }
+  }
+
+  throw lastError || new Error('Could not save leaderboard after retries.');
+}
+
+
+async function deleteScoresFromBoard(deleteIds = [], deleteSignatures = []) {
+  const blobSdk = await sdk();
+  const pathname = await findExistingPath(blobSdk);
+  const ids = new Set((Array.isArray(deleteIds) ? deleteIds : []).map(value => String(value)));
+  const signatures = new Set((Array.isArray(deleteSignatures) ? deleteSignatures : []).map(value => String(value)));
+
+  if (!ids.size && !signatures.size) {
+    throw new Error('No leaderboard score selected for deletion.');
+  }
+
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt += 1) {
+    const current = await readBoard(blobSdk, pathname);
+    const before = current.board?.scores || [];
+    const kept = before.filter(entry => !ids.has(String(entry.id)) && !signatures.has(sig(entry)));
+    const nextBoard = compatBoard(kept);
+    const deletedCount = Math.max(0, before.length - nextBoard.scores.length);
+
+    if (!deletedCount) {
+      return {
+        deleted: 0,
+        attempts: attempt,
+        pathname,
+        board: current.board,
+        etag: current.etag,
+        updatedAt: current.updatedAt
+      };
+    }
+
+    try {
+      const written = await writeBoard(blobSdk, pathname, nextBoard, current);
+
+      return {
+        deleted: deletedCount,
+        attempts: attempt,
+        pathname,
+        board: nextBoard,
+        etag: written?.etag || null,
+        updatedAt: nowIso()
+      };
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableWriteError(error) || attempt >= MAX_WRITE_ATTEMPTS) {
+        break;
+      }
+
+      await sleep(75 * attempt + Math.floor(Math.random() * 125));
+    }
+  }
+
+  throw lastError || new Error('Could not delete leaderboard score after retries.');
+}
+
+async function readBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  if (typeof req.body === 'string') return parseJson(req.body);
+
+  let raw = '';
+
+  try {
+    for await (const chunk of req) {
+      raw += chunk;
+    }
+  } catch {
+    return {};
+  }
+
+  return parseJson(raw);
+}
+
+function sendJson(res, statusCode, payload) {
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  if (statusCode === 204) {
+    res.end();
+    return;
+  }
+
+  res.end(JSON.stringify(payload, null, 2));
 }
 
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') return sendJson(res, 200, { ok: true });
+  try {
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Allow', 'GET, POST, OPTIONS');
+      return sendJson(res, 204, {});
+    }
 
-  // Fail fast with a clear message when the Blob token is missing so the error
-  // is actionable rather than a cryptic "Unknown Blob error".
-  if (!hasBlobToken()) {
-    return sendJson(res, 503, {
-      ok: false,
-      error: 'Leaderboard unavailable',
-      detail: 'BLOB_READ_WRITE_TOKEN is not configured. Add it in your Vercel project → Storage → Connect Store, or set it manually in Environment Variables.',
-      meta: leaderboardMeta()
-    });
-  }
+    if (req.method === 'GET') {
+      const blobSdk = await sdk();
+      const pathname = await findExistingPath(blobSdk);
+      const result = await ensureBoardExists(blobSdk, pathname);
 
-  if (req.method === 'GET') {
-    try {
-      const { board } = await loadBoard();
       return sendJson(res, 200, {
         ok: true,
-        leaderboard: board,
-        meta: leaderboardMeta({ count: board.scores.length, updatedAt: board.updatedAt })
-      });
-    } catch (error) {
-      return sendJson(res, 503, {
-        ok: false,
-        error: 'Leaderboard unavailable',
-        detail: safeErrorMessage(error),
-        meta: leaderboardMeta()
+        online: true,
+        initialized: result.created,
+        pathname: result.pathname,
+        leaderboard: result.board,
+        scores: result.board.scores,
+        single: result.board.single,
+        multiplayer: result.board.multiplayer,
+        count: result.board.scores.length,
+        updatedAt: result.updatedAt
       });
     }
-  }
 
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'GET, POST, OPTIONS');
-    return sendJson(res, 405, { error: 'Method not allowed' });
-  }
+    if (req.method === 'POST') {
+      const body = await readBody(req);
 
-  let body = {};
-  try {
-    body = await readBody(req);
-  } catch (error) {
-    return sendJson(res, 400, { error: 'Invalid JSON' });
-  }
+      if (body?.action === 'deleteScore' || body?.adminAction === 'deleteScore') {
+        if (!isAdminAuthorized(req, body)) {
+          return sendJson(res, 403, {
+            ok: false,
+            online: true,
+            error: 'Admin mode denied'
+          });
+        }
 
-  const rawEntries = Array.isArray(body.entries) ? body.entries : [body];
-  const entries = rawEntries.map(cleanEntry).filter(Boolean).slice(0, MAX_ENTRIES);
-  if (!entries.length) return sendJson(res, 400, { error: 'No valid scores submitted' });
+        const result = await deleteScoresFromBoard(body?.ids || body?.deleteIds || [], body?.signatures || body?.deleteSignatures || []);
 
-  const MAX_ATTEMPTS = 5;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    try {
-      const { board, etag } = await loadBoard();
-      const merged = mergeEntries(board, entries);
-
-      if (!merged.saved) {
         return sendJson(res, 200, {
           ok: true,
-          saved: false,
-          accepted: merged.accepted,
-          leaderboard: merged.board,
-          meta: leaderboardMeta({ count: merged.board.scores.length, updatedAt: merged.board.updatedAt })
+          online: true,
+          admin: true,
+          deleted: result.deleted,
+          attempts: result.attempts || 0,
+          pathname: result.pathname,
+          leaderboard: result.board,
+          scores: result.board.scores,
+          single: result.board.single,
+          multiplayer: result.board.multiplayer,
+          count: result.board.scores.length,
+          updatedAt: result.updatedAt
         });
       }
 
-      // On the final attempt drop ifMatch so a persistent ETag race never blocks a
-      // legitimate save.  Worst case: two concurrent final-round saves race and the
-      // second one wins — acceptable for a leaderboard.
-      const etagToUse = attempt < MAX_ATTEMPTS - 1 ? etag : null;
-      await saveBoard(merged.board, etagToUse);
+      const result = await mergeAndSave(extractIncoming(body));
+
       return sendJson(res, 200, {
         ok: true,
-        saved: true,
-        accepted: merged.accepted,
-        leaderboard: merged.board,
-        meta: leaderboardMeta({ count: merged.board.scores.length, updatedAt: merged.board.updatedAt })
+        online: true,
+        merged: true,
+        saved: result.saved,
+        created: result.created,
+        attempts: result.attempts || 0,
+        pathname: result.pathname,
+        leaderboard: result.board,
+        scores: result.board.scores,
+        single: result.board.single,
+        multiplayer: result.board.multiplayer,
+        count: result.board.scores.length,
+        updatedAt: result.updatedAt
       });
-    } catch (error) {
-      const message = String(error?.message || error?.name || '');
-      const retryable = /Precondition|ifMatch|etag|condition/i.test(message);
-      if (!retryable || attempt === MAX_ATTEMPTS - 1) {
-        return sendJson(res, 500, {
-          ok: false,
-          error: 'Could not save leaderboard score',
-          detail: safeErrorMessage(error),
-          meta: leaderboardMeta()
-        });
-      }
-      // Exponential backoff: 100 ms, 200 ms, 400 ms, 800 ms
-      await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, attempt)));
     }
+
+    res.setHeader('Allow', 'GET, POST, OPTIONS');
+
+    return sendJson(res, 405, {
+      ok: false,
+      error: 'Method not allowed'
+    });
+  } catch (error) {
+    return sendJson(res, 500, {
+      ok: false,
+      online: false,
+      error: error?.message || String(error),
+      name: error?.name || 'Error',
+      hint: 'If this mentions @vercel/blob being too old, update package.json to @vercel/blob >= 2.3.0. Otherwise check Vercel Function logs.'
+    });
   }
 }

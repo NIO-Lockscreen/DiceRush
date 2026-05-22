@@ -220,6 +220,14 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 #scoreBreakdownTip .tbTotal .tbVal{color:#fff;font-weight:900;font-size:14px;letter-spacing:-.03em}
 #scoreBreakdownTip .tbMiss .tbLabel,#scoreBreakdownTip .tbMiss .tbVal{color:rgba(255,255,255,.38);font-style:italic}
 
+#adminDHotspot{cursor:pointer;display:inline-block;border-radius:10px;padding:0 .015em;transition:background .16s ease,color .16s ease,transform .16s ease}
+#adminDHotspot:hover{background:rgba(255,214,107,.16);color:var(--gold);transform:translateY(-1px)}
+.adminModeBanner{margin:12px 0;padding:10px 12px;border-radius:16px;border:1px solid rgba(255,214,107,.35);background:rgba(255,214,107,.10);color:#ffd66b;font-weight:900}
+.adminDeleteBtn{border:1px solid rgba(255,91,129,.45);background:rgba(255,91,129,.14);color:#ffd6df;border-radius:999px;padding:7px 10px;font-weight:1000;cursor:pointer;font-size:12px}
+.adminDeleteBtn:hover{background:rgba(255,91,129,.26);border-color:rgba(255,91,129,.75)}
+.leaderboardModalList li.adminScoreRow{grid-template-columns:34px 1fr auto auto}
+.leaderboardModalList li.adminScoreRow .leaderboardSub{grid-column:2 / 5}
+
 </style>
 </head>
 <body>
@@ -229,7 +237,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
       <div class="brand">
         <div class="logo">⚂</div>
         <div>
-          <h1>Dice Rush</h1>
+          <h1 id="brandTitle"><span id="adminDHotspot" title="Hold for admin mode">D</span>ice Rush</h1>
           <div class="sub">Hot-seat singleplayer or multiplayer Yahtzee with a chaotic dice shop, target modes, juicy effects, and a much more animated roll.</div>
         </div>
       </div>
@@ -397,7 +405,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 <div class="yahtzeeStorm" id="yahtzeeStorm"><div class="yahtzeeStormCard"><div class="yahtzeeKick">ULTRA HIT</div><div class="yahtzeeBig">YAHTZEE!</div><div class="yahtzeeSub">Overkill. Excessive. Correct.</div><div class="yahtzeeBolt" style="left:14%;animation-delay:.02s"></div><div class="yahtzeeBolt" style="left:31%;animation-delay:.17s"></div><div class="yahtzeeBolt" style="left:50%;animation-delay:.09s"></div><div class="yahtzeeBolt" style="left:69%;animation-delay:.23s"></div><div class="yahtzeeBolt" style="left:86%;animation-delay:.13s"></div></div></div>
 <div class="modalBg" id="rulesModal"><div class="modal" style="text-align:left"><h2 style="font-size:40px">Rules</h2><p>Roll up to three times. Tap dice to hold them. After the third roll, the roll button becomes <b>Bank score</b>. Score once per turn. In <b>Pick your target</b> mode you roll first, then click any unused scorecard row to bank there. In <b>Forced</b> mode (the default) the target automatically follows the scorecard order: Ones, Twos, Threes, and so on. If you roll a Yahtzee and the Yahtzee row is still open, forced mode will slam it into the Yahtzee slot automatically.</p><p>In forced mode, matching dice glow green for your current target. In pick mode, hover a score row to preview its target highlights. Each player has their own scorecard, cash, shop stock, and owned dice. Successful turns pay cash so you can buy more chaotic passive dice. Hitting your active target now multiplies only when the actual target is valid: four Ones scores 4 × 4 = 16, a real Full House is 3+2 only, and two pairs never ignite Full House heat. Chance has no target multiplier. The roll shop under the heat meter can reroll one die, buy cash-to-score ranks, buy extra rolls, or upgrade owned dice; upgraded WOG becomes WOW, and upgraded 67 Dice can create an impossible 7. The upper bonus now needs 180 points and pays +75. Shop rerolls start at $5 each turn and get more expensive until the next turn. Roll-trigger dice like Pølse Power now save their bonus when the roll happens, so you can reroll and still keep that score for the category round. All dice are now in the starting loot pool. As the game gets deeper, rare and legendary dice become more likely to appear in the shop.</p><div class="modalActions"><button class="primary" id="closeRulesBtn">Got it</button></div></div></div>
 <div class="modalBg" id="endModal"><div class="modal"><h2 id="endTitle">Game over!</h2><div class="final" id="finalScore">0</div><p id="finalCopy">One more run?</p><div class="modalActions"><button class="primary" id="playAgainBtn">Play again</button><button class="pill" id="closeEndBtn">Close</button></div></div></div>
-<div class="modalBg" id="leaderboardModal"><div class="modal" style="text-align:left;width:min(720px,100%)"><h2 style="font-size:40px">Online Top 10</h2><p>Best scores from both single-player and multiplayer. In 2-player games, each player saves their own individual score here.</p><ol class="leaderboardModalList" id="leaderboardModalList"><li>Loading...</li></ol><div class="modalActions"><button class="primary" id="closeLeaderboardBtn">Close</button></div></div></div>
+<div class="modalBg" id="leaderboardModal"><div class="modal" style="text-align:left;width:min(720px,100%)"><h2 style="font-size:40px">Online Top 10</h2><p>Best scores from both single-player and multiplayer. In 2-player games, each player saves their own individual score here.</p><div class="adminModeBanner" id="adminModeBanner" hidden>Admin mode: delete buttons are active for individual online Top 10 scores.</div><ol class="leaderboardModalList" id="leaderboardModalList"><li>Loading...</li></ol><div class="modalActions"><button class="primary" id="closeLeaderboardBtn">Close</button></div></div></div>
 <div class="modalBg" id="diceGuideModal"><div class="modal" style="text-align:left;width:min(940px,100%)"><h2 style="font-size:40px">Dice explainer</h2><div class="guideIntro" id="diceGuideMeta">Every dice is in the starting loot pool. Rare and legendary dice become more likely as the round number increases.</div><div class="guideGrid" id="diceGuideList"></div><div class="modalActions"><button class="primary" id="closeDiceGuideBtn">Close</button></div></div></div>
 <div id="scoreBreakdownTip"><div class="tbTitle">Score breakdown</div></div>
 <div class="modalBg" id="musicModal"><div class="modal musicPanel"><h2 style="font-size:40px">Hidden MP3 player</h2><p>Music auto-loads from the <b>mp3</b> folder when the browser can find it. You can also choose local MP3 files manually.</p><div class="musicCard" id="musicCard"><div class="musicHead"><span>MP3 Player</span><span class="musicBadge" id="musicState">Searching</span></div><div class="musicTrack" id="musicTrack">Looking for /mp3 music...</div><div class="musicHint" id="musicHint">Long press the audio button to open this panel.</div></div><input id="musicFileInput" type="file" accept="audio/mpeg,audio/mp3,.mp3" multiple hidden><div class="musicActions"><button class="primary" id="openMusicFileBtn">📁 Choose MP3 file</button><button class="pill" id="musicPlayPauseBtn">▶️ Play / pause</button><button class="pill" id="musicPrevBtn">⏮️ Previous</button><button class="pill" id="musicNextBtn">⏭️ Next</button></div><div class="modalActions"><button class="pill" id="closeMusicModalBtn">Close</button></div></div></div>
@@ -711,6 +719,9 @@ function smartUpgradePayload(id, ctx){
 }
 
 const els = {
+  brandTitle: document.getElementById('brandTitle'),
+  adminDHotspot: document.getElementById('adminDHotspot'),
+  adminModeBanner: document.getElementById('adminModeBanner'),
   playerCount: document.getElementById('playerCount'),
   targetMode: document.getElementById('targetMode'),
   name1: document.getElementById('name1'),
@@ -1164,6 +1175,8 @@ const state = {
   leaderboardOnline: false,
   leaderboardSaving: false,
   leaderboardLoadedOnce: false,
+  leaderboardAdmin: false,
+  leaderboardAdminPin: sessionStorage.getItem('diceRushLeaderboardAdminPin') || '',
   unlockLevel: loadUnlockLevel(),
   turnsScored: 0,
   shopRerollsThisTurn: 0,
@@ -2567,20 +2580,107 @@ function leaderboardRowHTML(entry, index, empty = false){
   const extra = entry.mode === 'multiplayer' && entry.playerNames && entry.playerNames.length
     ? `${leaderboardModeLabel(entry)} • ${entry.playerNames.map(escapeHTML).join(' vs ')}`
     : leaderboardModeLabel(entry);
-  return `<li><span class="leaderboardRank">${index + 1}</span><span class="leaderboardWho">${escapeHTML(entry.name)}</span><span class="leaderboardScore">${entry.score}</span><span class="leaderboardSub">${extra}</span></li>`;
+  const adminDelete = state.leaderboardAdmin
+    ? `<button class="adminDeleteBtn" type="button" data-leaderboard-delete="${escapeHTML(entry.id)}" data-leaderboard-signature="${escapeHTML(leaderboardEntrySignature(entry))}">Delete</button>`
+    : '';
+  return `<li class="${state.leaderboardAdmin ? 'adminScoreRow' : ''}"><span class="leaderboardRank">${index + 1}</span><span class="leaderboardWho">${escapeHTML(entry.name)}</span><span class="leaderboardScore">${entry.score}</span>${adminDelete}<span class="leaderboardSub">${extra}</span></li>`;
 }
 
 function renderLeaderboardModalList(){
   if (!els.leaderboardModalList) return;
+  if (els.adminModeBanner) els.adminModeBanner.hidden = !state.leaderboardAdmin;
   const entries = sortedLeaderboardScores((state.leaderboard && state.leaderboard.scores) || []);
   const rows = [];
   for (let i = 0; i < 10; i += 1) rows.push(leaderboardRowHTML(entries[i], i, !entries[i]));
   els.leaderboardModalList.innerHTML = rows.join('');
 }
 
+
+function isAdminNameReady(){
+  return String(els.name1?.value || '').trim().toLowerCase() === 'thomas';
+}
+
+function getAdminPin(){
+  if (state.leaderboardAdminPin) return state.leaderboardAdminPin;
+  const pin = prompt('Admin code for leaderboard delete:', 'Thomas');
+  if (!pin) return '';
+  state.leaderboardAdminPin = pin;
+  try { sessionStorage.setItem('diceRushLeaderboardAdminPin', pin); } catch (error) {}
+  return pin;
+}
+
+function openLeaderboardAdminMode(){
+  if (!isAdminNameReady()) {
+    toast('Admin locked', 'Set P1 name to Thomas first, then hold the D in Dice Rush.');
+    return;
+  }
+  const pin = getAdminPin();
+  if (!pin) return;
+  state.leaderboardAdmin = true;
+  toast('🛡️ Admin mode', 'Top 10 delete buttons are now visible.');
+  openLeaderboardModal();
+  renderLeaderboardModalList();
+}
+
+function forgetLocalLeaderboardScore(id, signature){
+  const existing = loadLocalLeaderboardEntries();
+  const kept = existing.filter(entry => String(entry.id) !== String(id) && leaderboardEntrySignature(entry) !== signature);
+  saveLocalLeaderboardEntries(kept);
+  return kept;
+}
+
+async function deleteLeaderboardScore(id, signature){
+  if (!state.leaderboardAdmin) return;
+  const entry = sortedLeaderboardScores((state.leaderboard && state.leaderboard.scores) || []).find(item => String(item.id) === String(id));
+  const label = entry ? `${entry.name} — ${entry.score}` : 'this score';
+  if (!confirm(`Delete ${label} from online Top 10?`)) return;
+
+  const pin = getAdminPin();
+  if (!pin) return;
+
+  try {
+    const response = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-leaderboard-admin': pin },
+      cache: 'no-store',
+      body: JSON.stringify({ action: 'deleteScore', ids: [id], signatures: signature ? [signature] : [], adminPin: pin })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.ok) throw new Error(data?.error || 'Delete failed');
+
+    forgetLocalLeaderboardScore(id, signature);
+    const online = normalizeLeaderboardPayload(data);
+    state.leaderboardOnline = true;
+    state.leaderboardLoadedOnce = true;
+    mergeOnlineAndLocalLeaderboard(online.scores, []);
+    toast('🗑️ Score deleted', `${label} was removed from Blob.`);
+    renderLeaderboard();
+  } catch (error) {
+    toast('⚠️ Delete failed', error.message || 'Could not delete the score. Check admin code or Vercel logs.');
+  }
+}
+
+function setupLeaderboardAdminHotspot(){
+  if (!els.adminDHotspot) return;
+  let timer = null;
+  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  els.adminDHotspot.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    clear();
+    timer = setTimeout(() => {
+      timer = null;
+      openLeaderboardAdminMode();
+      vibrate(25);
+    }, 900);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(eventName => els.adminDHotspot.addEventListener(eventName, clear));
+  els.adminDHotspot.addEventListener('contextmenu', event => event.preventDefault());
+}
+
 function openLeaderboardModal(){
   renderLeaderboardModalList();
   if (els.leaderboardModal) els.leaderboardModal.classList.add('show');
+  loadOnlineLeaderboard(loadLocalLeaderboardEntries(), true);
 }
 
 function renderLeaderboard(){
@@ -3452,6 +3552,7 @@ els.unholdBtn.onclick = clearHolds;
 els.dice.forEach((die,i)=>die.onclick = () => toggleHold(i));
 if (els.targetSelect) els.targetSelect.onchange = () => {}; // picker removed; score by clicking a row
 setupSoundButtonLongPress();
+setupLeaderboardAdminHotspot();
 els.rulesBtn.onclick = () => els.rulesModal.classList.add('show');
 els.closeRulesBtn.onclick = () => els.rulesModal.classList.remove('show');
 els.rulesModal.onclick = e => { if (e.target === els.rulesModal) els.rulesModal.classList.remove('show'); };
@@ -3462,6 +3563,13 @@ els.endModal.onclick = e => { if (e.target === els.endModal) els.endModal.classL
 if (els.allTimeCard) els.allTimeCard.addEventListener('click', openLeaderboardModal);
 if (els.viewLeaderboardBtn) els.viewLeaderboardBtn.addEventListener('click', event => { event.stopPropagation(); openLeaderboardModal(); });
 if (els.closeLeaderboardBtn) els.closeLeaderboardBtn.onclick = () => els.leaderboardModal.classList.remove('show');
+if (els.leaderboardModalList) els.leaderboardModalList.addEventListener('click', event => {
+  const btn = event.target.closest('[data-leaderboard-delete]');
+  if (!btn) return;
+  event.preventDefault();
+  event.stopPropagation();
+  deleteLeaderboardScore(btn.dataset.leaderboardDelete, btn.dataset.leaderboardSignature || '');
+});
 if (els.leaderboardModal) els.leaderboardModal.onclick = e => { if (e.target === els.leaderboardModal) els.leaderboardModal.classList.remove('show'); };
 els.showWinnerBtn.onclick = showStandings;
 els.playerCount.onchange = () => {
