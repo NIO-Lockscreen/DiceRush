@@ -348,30 +348,29 @@ async function readBoard(blobSdk, pathname) {
   }
 }
 
-async function writeBoard(blobSdk, pathname, board, current) {
+async function writeBoard(blobSdk, pathname, board) {
   const payload = {
     leaderboard: compatBoard(board.scores || []),
     updatedAt: nowIso()
   };
 
-  const options = {
+  // Do not use ifMatch / ETag-based optimistic locking.
+  // Vercel Blob's CDN layer transforms ETags (gzip, etc.) so the ETag returned
+  // by a read never matches the storage-layer ETag expected by put(ifMatch:…),
+  // causing every write to fail with 412 Precondition Failed.
+  //
+  // Concurrency is instead handled by the retry loop in mergeAndSave():
+  // each attempt re-reads the board before writing, so racing saves converge
+  // to a merged result rather than a lost-update.  cacheControlMaxAge:0
+  // keeps the CDN from serving stale reads.
+  return blobSdk.put(pathname, JSON.stringify(payload, null, 2), {
     access: access(),
     token: token(),
     contentType: 'application/json',
     addRandomSuffix: false,
-    cacheControlMaxAge: 60
-  };
-
-  if (current?.exists && current?.etag) {
-    options.allowOverwrite = true;
-    options.ifMatch = current.etag;
-  } else if (current?.exists) {
-    options.allowOverwrite = true;
-  } else {
-    options.allowOverwrite = false;
-  }
-
-  return blobSdk.put(pathname, JSON.stringify(payload, null, 2), options);
+    allowOverwrite: true,
+    cacheControlMaxAge: 0
+  });
 }
 
 function extractIncoming(body) {
@@ -426,7 +425,7 @@ async function ensureBoardExists(blobSdk, pathname) {
 
   try {
     const empty = compatBoard([]);
-    const written = await writeBoard(blobSdk, pathname, empty, current);
+    const written = await writeBoard(blobSdk, pathname, empty);
 
     return {
       saved: true,
@@ -487,7 +486,7 @@ async function mergeAndSave(incomingEntries) {
     }
 
     try {
-      const written = await writeBoard(blobSdk, pathname, nextBoard, current);
+      const written = await writeBoard(blobSdk, pathname, nextBoard);
 
       return {
         saved: true,
@@ -544,7 +543,7 @@ async function deleteScoresFromBoard(deleteIds = [], deleteSignatures = []) {
     }
 
     try {
-      const written = await writeBoard(blobSdk, pathname, nextBoard, current);
+      const written = await writeBoard(blobSdk, pathname, nextBoard);
 
       return {
         deleted: deletedCount,
