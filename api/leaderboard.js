@@ -174,11 +174,18 @@ async function readBoardFromPath(path) {
   const blobMeta = blobs.find((b) => b.pathname === path);
   if (!blobMeta) return null;
 
-  const fetchHeaders = { 'cache': 'no-store' };
+  const fetchHeaders = {
+    // Force CDN bypass so we always get the current ETag from storage.
+    // Note: these are HTTP *request* headers, and `cache` is a separate fetch option below.
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  };
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     fetchHeaders['Authorization'] = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
   }
-  const response = await fetch(blobMeta.url, { headers: fetchHeaders });
+  // `cache: 'no-store'` must be a fetch *option*, not a header.
+  // Previously it was incorrectly placed inside the headers object and had no effect.
+  const response = await fetch(blobMeta.url, { headers: fetchHeaders, cache: 'no-store' });
   if (!response.ok) return null;
 
   const etag = response.headers.get('etag') || null;
@@ -282,7 +289,8 @@ export default async function handler(req, res) {
   const entries = rawEntries.map(cleanEntry).filter(Boolean).slice(0, MAX_ENTRIES);
   if (!entries.length) return sendJson(res, 400, { error: 'No valid scores submitted' });
 
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     try {
       const { board, etag } = await loadBoard();
       const merged = mergeEntries(board, entries);
@@ -297,7 +305,11 @@ export default async function handler(req, res) {
         });
       }
 
-      await saveBoard(merged.board, etag);
+      // On the final attempt drop ifMatch so a persistent ETag race never blocks a
+      // legitimate save.  Worst case: two concurrent final-round saves race and the
+      // second one wins — acceptable for a leaderboard.
+      const etagToUse = attempt < MAX_ATTEMPTS - 1 ? etag : null;
+      await saveBoard(merged.board, etagToUse);
       return sendJson(res, 200, {
         ok: true,
         saved: true,
@@ -308,7 +320,7 @@ export default async function handler(req, res) {
     } catch (error) {
       const message = String(error?.message || error?.name || '');
       const retryable = /Precondition|ifMatch|etag|condition/i.test(message);
-      if (!retryable || attempt === 3) {
+      if (!retryable || attempt === MAX_ATTEMPTS - 1) {
         return sendJson(res, 500, {
           ok: false,
           error: 'Could not save leaderboard score',
@@ -316,7 +328,8 @@ export default async function handler(req, res) {
           meta: leaderboardMeta()
         });
       }
-      await new Promise((resolve) => setTimeout(resolve, 80 + attempt * 120));
+      // Exponential backoff: 100 ms, 200 ms, 400 ms, 800 ms
+      await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, attempt)));
     }
   }
 }
