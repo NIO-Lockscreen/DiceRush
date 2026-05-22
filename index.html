@@ -168,6 +168,19 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 @keyframes activeBonusSweep{0%{transform:translateX(-75%) rotate(12deg);opacity:0}35%{opacity:.9}100%{transform:translateX(75%) rotate(12deg);opacity:0}}
 @keyframes activeBonusEmoji{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.11) rotate(-4deg)}}
 
+/* Inverted dice — no slot limit, special background */
+.invertedRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:0}
+.slot.invertedDie{min-height:86px;border-radius:18px;border:1px solid rgba(120,80,255,.45);background:linear-gradient(180deg,rgba(100,60,255,.16),rgba(8,4,28,.62));padding:10px;text-align:center;display:flex;flex-direction:column;justify-content:center;box-shadow:0 0 18px rgba(100,60,255,.10),inset 0 1px 0 rgba(180,150,255,.12)}
+.slot.invertedDie.owned{cursor:pointer;color:var(--text);transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,transform .16s ease}
+.slot.invertedDie.owned:hover{border-color:rgba(180,110,255,.88);background:linear-gradient(180deg,rgba(120,70,255,.26),rgba(103,221,255,.09));transform:translateY(-1px)}
+.slot.invertedDie .slotName{color:#c5a8ff}
+.slot.invertedDie .slotText{color:rgba(180,150,255,.68)}
+.slot.invertedDie.selected{border-color:rgba(255,98,208,.9);box-shadow:0 0 0 2px rgba(255,98,208,.2),0 0 28px rgba(159,102,255,.28);background:linear-gradient(180deg,rgba(200,120,255,.22),rgba(103,221,255,.11))}
+.slot.invertedDie.selected .slotText{color:#d4a8ff}
+.invertedBadge{display:inline-block;margin-left:6px;font-size:10px;font-weight:1000;text-transform:uppercase;padding:3px 7px;border-radius:999px;border:1px solid rgba(130,90,255,.48);background:rgba(100,60,255,.22);color:#c5a8ff;box-shadow:0 0 10px rgba(100,60,255,.16);vertical-align:middle}
+.item.isInverted{border-color:rgba(120,80,255,.46);background:rgba(100,60,255,.10)}
+.item.isInverted:hover:not(:disabled){background:rgba(100,60,255,.17);border-color:rgba(150,100,255,.70);box-shadow:inset 0 0 0 1px rgba(130,90,255,.13),0 0 20px rgba(100,60,255,.11)}
+
 
 /* v16: roll shop + dice upgrades */
 .rollShopCard{margin-top:14px;border-radius:24px;border:1px solid rgba(255,212,105,.20);background:radial-gradient(circle at 18% 0%,rgba(255,212,105,.16),transparent 38%),rgba(0,0,0,.18);padding:14px;position:relative;overflow:hidden}.rollShopCard::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.05),transparent 55%);pointer-events:none}.rollShopHead{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.rollShopTitle{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:1000}.rollShopSub{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}.rollShopGrid{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rollShopBtn{min-height:78px;text-align:left;border-radius:18px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);padding:10px;display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;transition:transform .16s ease,border-color .16s ease,background .16s ease}.rollShopBtn:hover:not(:disabled){transform:translateY(-2px);background:rgba(255,255,255,.12);border-color:rgba(255,212,105,.45);box-shadow:0 0 28px rgba(255,212,105,.10)}.rollShopIcon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(255,212,105,.9),rgba(255,98,208,.72));font-size:22px}.rollShopName{font-weight:1000;letter-spacing:-.03em}.rollShopText{margin-top:2px;color:var(--muted);font-size:11px;line-height:1.25}.rollShopCost{color:var(--gold);font-weight:1000}.slot.upgraded{border-color:rgba(255,212,105,.95);background:linear-gradient(180deg,rgba(255,212,105,.27),rgba(103,221,255,.11));box-shadow:0 0 0 2px rgba(255,212,105,.18),0 0 34px rgba(255,212,105,.20)}.slot.upgraded .slotName{color:#ffe39b}.slot.upgraded .slotText{color:#ffe39b}.category.heatMiss{opacity:.78}.upgradeSpark{position:fixed;z-index:67;pointer-events:none;font-size:38px;animation:upgradeSparkFly .9s ease-out forwards;filter:drop-shadow(0 0 18px rgba(255,212,105,.7))}@keyframes upgradeSparkFly{0%{opacity:0;transform:translate(-50%,16px) scale(.5) rotate(-18deg)}20%{opacity:1;transform:translate(-50%,0) scale(1.2) rotate(8deg)}100%{opacity:0;transform:translate(-50%,-86px) scale(.8) rotate(38deg)}}@media(max-width:560px){.rollShopGrid{grid-template-columns:1fr}.rollShopBtn{min-height:68px}}
@@ -348,6 +361,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
         </div>
         <div class="section"><span>Your dice</span><span id="invCount">0 / 6</span></div>
         <div class="inventory" id="inventory"></div>
+        <div id="invertedContainer"></div>
         <div class="section"><span>Current stock</span></div>
         <div class="shopGrid" id="stock"></div>
         <div class="shopBtns">
@@ -615,7 +629,7 @@ function smartUpgradePayload(id, ctx){
     case 'coffee': return state.rollsLeft >= 1 ? {score:40,note:'Triple Espresso upgrade'} : null;
     case 'goblin': return total >= 12 && total <= 14 ? {score:40,money:20,note:'Greed King upgrade'} : null;
     case 'clown': return values.some(v=>v>=4) ? {score:90,note:'Circus Clown upgrade'} : (tripleFace ? {score:30,note:'Clown triple honk upgrade'} : null);
-    case 'accountant': return catId === 'chance' ? {score:player.inv.length*10,note:'Chief Accountant upgrade'} : {score:player.inv.length*3,note:'Small audit upgrade'};
+    case 'accountant': { const allDice = player.inv.length + (player.invertedInv||[]).length; return catId === 'chance' ? {score:allDice*10,note:'Chief Accountant upgrade'} : {score:allDice*3,note:'Small audit upgrade'}; }
     case 'dragon': return currentRawScore() >= 40 ? {score:70,money:60,note:'Ancient Dragon upgrade'} : null;
     case 'sock': return currentRawScore() > 0 ? {score: currentRawScore()%2===1 ? 25 : 12, note:'Dry Sock upgrade'} : null;
     case 'cheese': return (c[5]||0) ? {score:(c[5]||0)*10,money:(c[5]||0)*5,note:'Aged Cheese upgrade'} : null;
@@ -742,6 +756,7 @@ const els = {
   shopCash: document.getElementById('shopCash'),
   invCount: document.getElementById('invCount'),
   inventory: document.getElementById('inventory'),
+  invertedContainer: document.getElementById('invertedContainer'),
   stock: document.getElementById('stock'),
   poolMeta: document.getElementById('poolMeta'),
   rerollShopBtn: document.getElementById('rerollShopBtn'),
@@ -1136,13 +1151,16 @@ function createPlayer(name){
     yahtzeeBonus: 0,
     cash: 40,
     inv: [],
+    invertedInv: [],
     paid: {},
     upgrades: {},
     cashScoreRanks: 0,
     stock: [],
+    stockInverted: [],
     selectedTarget: 'ones',
     lastTurn: null,
     selectedSellIndex: null,
+    selectedSellIsInverted: false,
     mousetrapUsed: false,
     scoreSwapAdjust: 0,
     turnRollBonuses: []
@@ -1154,7 +1172,7 @@ function isUsed(player, id){ return Object.prototype.hasOwnProperty.call(player.
 function sumDice(dice = state.dice){ return dice.reduce((a,b)=>a+b,0); }
 function counts(dice = state.dice){ return dice.reduce((a,n)=>(a[n]=(a[n]||0)+1,a),{}); }
 function isYahtzee(dice = state.dice){ return new Set(dice).size === 1; }
-function has(player, itemId){ return player.inv.includes(itemId); }
+function has(player, itemId){ return player.inv.includes(itemId) || (player.invertedInv || []).includes(itemId); }
 function findCategory(id){ return categories.find(c=>c.id===id); }
 function escapeHTML(value){
   return String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
@@ -1432,7 +1450,7 @@ function rollTriggerPayload(id, { player, dice }){
 function collectTurnRollBonuses(player, dice, source = 'roll'){
   if (!player || !Array.isArray(dice) || !state.hasRolled || state.scoring) return [];
   const found = [];
-  for (const id of [...new Set(player.inv || [])]) {
+  for (const id of [...new Set([...(player.inv || []), ...(player.invertedInv || [])])]) {
     if (!isTurnRollTrigger(id)) continue;
     const payload = rollTriggerPayload(id, { player, dice });
     if (!payload) continue;
@@ -1606,9 +1624,11 @@ function renderHeatMeter(){
 function selectedOwnedDice(player){
   const index = normalizeSellSelection(player);
   if (index === null || index === undefined) return null;
-  const id = player.inv[index];
+  const isInverted = player.selectedSellIsInverted || false;
+  const inv = isInverted ? (player.invertedInv || []) : player.inv;
+  const id = inv[index];
   const item = shopItems.find(it=>it.id===id);
-  return item ? { index, id, item } : null;
+  return item ? { index, id, item, isInverted } : null;
 }
 function renderRollShop(){
   if (!els.rollShopCard) return;
@@ -1780,7 +1800,7 @@ function effectScore(player, catId, {preview=false} = {}){
   }
   if (has(player,'clown') && catId === 'fourKind' && computeBaseScore(catId,dice) > 0) addScore('clown', 40, 'Clown Car +40');
   if (has(player,'accountant') && catId === 'chance') {
-    const accountBonus = player.inv.length * 5;
+    const accountBonus = (player.inv.length + (player.invertedInv||[]).length) * 5;
     addScore('accountant', accountBonus, accountBonus ? `Accountant +${accountBonus}` : '');
   }
   if (has(player,'sock') && currentRawScore() > 0 && currentRawScore() % 2 === 1) addScore('sock', 9, 'Wet Sock +9');
@@ -1875,7 +1895,7 @@ function effectScore(player, catId, {preview=false} = {}){
   }
 
   // Smart upgrades: every upgraded dice gains a stronger, theme-aware payoff before heat.
-  for (const id of [...new Set(player.inv || [])]) {
+  for (const id of [...new Set([...(player.inv || []), ...(player.invertedInv || [])])]) {
     if (!isUpgraded(player,id) || id === 'wog' || isTurnRollTrigger(id)) continue;
     const payload = smartUpgradePayload(id, {player, catId, cat, dice, c, values, total, categoryScore, diceScore, money, preview, currentRawScore});
     if (!payload) continue;
@@ -2036,13 +2056,16 @@ function weightedPick(pool, progress){
   return pool.length - 1;
 }
 function refreshShop(player){
-  const pool = shopItems.filter(item => !player.inv.includes(item.id) && isShopItemAvailable(item));
+  const ownedAll = new Set([...player.inv, ...(player.invertedInv || [])]);
+  const pool = shopItems.filter(item => !ownedAll.has(item.id) && isShopItemAvailable(item));
   const progress = Math.min(1, Math.max(0, (playerRound(player) - 1) / (categories.length - 1)));
   player.stock = [];
   while (player.stock.length < 3 && pool.length) {
     const i = weightedPick(pool, progress);
     player.stock.push(pool.splice(i,1)[0].id);
   }
+  // 5% chance each shop slot is an inverted die (no slot cost, special background)
+  player.stockInverted = player.stock.map(() => Math.random() < 0.05);
 }
 
 function renderPlayers(){
@@ -2161,8 +2184,10 @@ function renderShop(){
   const player = activePlayer();
   els.shopCash.textContent = `$${player.cash}`;
   if (els.poolMeta) els.poolMeta.textContent = `${shopItems.filter(isShopItemAvailable).length}/${shopItems.length} dice available for this mode • stronger dice are rarer • rare odds rise in round ${Math.min(playerRound(player),13)}/13`;
-  els.invCount.textContent = `${player.inv.length} / 6`;
+  const invertedInvCount = (player.invertedInv || []).length;
+  els.invCount.textContent = `${player.inv.length} / 6${invertedInvCount > 0 ? ` + ${invertedInvCount} ✦` : ''}`;
   els.inventory.innerHTML = '';
+  if (els.invertedContainer) els.invertedContainer.innerHTML = '';
   normalizeSellSelection(player);
   const previewTargets = state.targetMode === 'forced'
     ? [currentTarget(player)].filter(Boolean)
@@ -2182,7 +2207,7 @@ function renderShop(){
     slot.className = 'slot' + (item ? ' owned' : '') + (selected ? ' selected' : '') + (activeBonus ? ' activeBonus' : '') + (upgraded ? ' upgraded' : '');
     if (item) {
       slot.dataset.itemId = item.id;
-      const sale = getSellRefund(player, i);
+      const sale = getSellRefund(player, i, false);
       const detail = `${displayItemName(player,item)} (${item.rarity}). ${displayItemDesc(player,item)} Bought for $${sale.paid}. Sells for $${sale.refund}.${activeBonus ? ' Active now: this dice changes the current bank preview.' : ''}`;
       slot.title = detail;
       slot.setAttribute('aria-label', detail);
@@ -2192,6 +2217,7 @@ function renderShop(){
       slot.onfocus = explainOwnedDice;
       slot.onclick = () => {
         player.selectedSellIndex = i;
+        player.selectedSellIsInverted = false;
         setMoment(item.emoji, `${displayItemName(player,item)} selected`, `${displayItemDesc(player,item)} Sell it for $${sale.refund}, upgrade it for $${rollShopCost(player,'upgradeDice')}, or keep it for future scores.`);
         render();
       };
@@ -2201,22 +2227,74 @@ function renderShop(){
     }
     els.inventory.appendChild(slot);
   }
+
+  // Render inverted dice rows (3 per row, no slot limit)
+  const invertedInv = player.invertedInv || [];
+  if (els.invertedContainer && invertedInv.length > 0) {
+    const invSectionLabel = document.createElement('div');
+    invSectionLabel.className = 'section';
+    invSectionLabel.style.marginTop = '10px';
+    invSectionLabel.innerHTML = `<span>✦ Inverted dice</span><span style="color:rgba(180,150,255,.7);font-size:11px">No slot limit</span>`;
+    els.invertedContainer.appendChild(invSectionLabel);
+    const numRows = Math.ceil(invertedInv.length / 3);
+    for (let row = 0; row < numRows; row++) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'invertedRow';
+      rowDiv.style.marginBottom = '8px';
+      for (let col = 0; col < 3; col++) {
+        const idx = row * 3 + col;
+        const invId = invertedInv[idx];
+        const invItem = invId ? shopItems.find(it => it.id === invId) : null;
+        const invSlot = document.createElement('button');
+        invSlot.type = 'button';
+        const invSelected = invItem && player.selectedSellIsInverted && player.selectedSellIndex === idx;
+        const invActiveBonus = invItem && activeBonusItems.has(invItem.id);
+        invSlot.className = 'slot invertedDie' + (invItem ? ' owned' : '') + (invSelected ? ' selected' : '') + (invActiveBonus ? ' activeBonus' : '');
+        if (invItem) {
+          invSlot.dataset.itemId = invItem.id;
+          const invPaid = player.paid[invItem.id] ?? shopPrice(player, invItem);
+          const invRefund = Math.max(0, Math.min(invPaid - 1, Math.floor(invPaid * 0.55)));
+          const invDetail = `${displayItemName(player,invItem)} (${invItem.rarity}) — Inverted. ${displayItemDesc(player,invItem)} Bought for $${invPaid}. Sells for $${invRefund}. Inverted dice use no inventory slot.`;
+          invSlot.title = invDetail;
+          invSlot.setAttribute('aria-label', invDetail);
+          invSlot.innerHTML = `<div class="slotEmoji">${invItem.emoji}</div><div class="slotName">${displayItemName(player,invItem)}</div><div class="slotText">${diceSlotStatus(player,invItem,invActiveBonus,invSelected)} • Sell $${invRefund}</div>`;
+          invSlot.onmouseenter = () => setMoment(invItem.emoji, displayItemName(player,invItem) + ' (inverted)', `${displayItemDesc(player,invItem)} Inverted — no slot used. Sell for $${invRefund}.`);
+          invSlot.onfocus = invSlot.onmouseenter;
+          invSlot.onclick = () => {
+            player.selectedSellIndex = idx;
+            player.selectedSellIsInverted = true;
+            setMoment(invItem.emoji, `${displayItemName(player,invItem)} selected (inverted)`, `${displayItemDesc(player,invItem)} Inverted dice use no slot. Sell for $${invRefund} or upgrade for $${rollShopCost(player,'upgradeDice')}.`);
+            render();
+          };
+        } else {
+          invSlot.disabled = true;
+          invSlot.innerHTML = `<div class="slotEmoji">◈</div><div class="slotName">Inverted slot</div><div class="slotText">Awaiting inverted</div>`;
+        }
+        rowDiv.appendChild(invSlot);
+      }
+      els.invertedContainer.appendChild(rowDiv);
+    }
+  }
+
   els.stock.innerHTML = '';
-  player.stock.forEach(itemId => {
+  const stockInverted = player.stockInverted || [];
+  const ownedAll = new Set([...player.inv, ...(player.invertedInv || [])]);
+  player.stock.forEach((itemId, stockIdx) => {
     const item = shopItems.find(it=>it.id===itemId);
     const cost = shopPrice(player,item);
+    const isInverted = stockInverted[stockIdx] === true;
     const btn = document.createElement('button');
-    btn.className = 'item';
-    btn.disabled = player.cash < cost || player.inv.length >= 6 || player.inv.includes(item.id);
-    btn.innerHTML = `<div class="emoji">${item.emoji}</div><div><div class="catName">${item.name}<span class="rarity rarity-${item.rarity}">${item.rarity}</span></div><div class="catDesc">${displayItemDesc(player,item)}</div></div><div class="price">$${cost}</div>`;
-    btn.onclick = () => buyItem(item.id, btn);
+    btn.className = 'item' + (isInverted ? ' isInverted' : '');
+    btn.disabled = player.cash < cost || (!isInverted && player.inv.length >= 6) || ownedAll.has(item.id);
+    btn.innerHTML = `<div class="emoji">${item.emoji}</div><div><div class="catName">${item.name}<span class="rarity rarity-${item.rarity}">${item.rarity}</span>${isInverted ? '<span class="invertedBadge">✦ inverted</span>' : ''}</div><div class="catDesc">${displayItemDesc(player,item)}${isInverted ? ' <em>Inverted: uses no dice slot.</em>' : ''}</div></div><div class="price">$${cost}</div>`;
+    btn.onclick = () => buyItem(item.id, btn, isInverted);
     els.stock.appendChild(btn);
   });
   const rerollCost = currentRerollCost();
   els.rerollShopBtn.textContent = `Reroll shop $${rerollCost}`;
   els.rerollShopBtn.disabled = player.cash < rerollCost;
   const lastSell = getSellRefund(player);
-  els.sellLastBtn.textContent = lastSell ? `Sell selected: ${lastSell.item.name} +$${lastSell.refund}${has(player,'salvager') && state.hasRolled ? (isUpgraded(player,'salvager') ? ' +2 rolls' : ' +1 roll') : ''}` : 'Sell selected dice';
+  els.sellLastBtn.textContent = lastSell ? `Sell selected: ${lastSell.item.name} +$${lastSell.refund}${lastSell.isInverted ? ' ✦' : ''}${has(player,'salvager') && state.hasRolled ? (isUpgraded(player,'salvager') ? ' +2 rolls' : ' +1 roll') : ''}` : 'Sell selected dice';
   els.sellLastBtn.disabled = !lastSell;
   renderHeatMeter();
   renderRollShop();
@@ -2230,7 +2308,7 @@ function renderDiceGuide(){
   if (!els.diceGuideList) return;
   els.diceGuideList.innerHTML = shopItems.map(item => {
     const doc = diceDocs[item.id] || { detail: item.desc, example: 'Example: When the condition is true, this dice changes the score or money when you bank the target.' };
-    const ownedUpgraded = player && player.inv.includes(item.id) && isUpgraded(player,item.id);
+    const ownedUpgraded = player && (player.inv.includes(item.id) || (player.invertedInv||[]).includes(item.id)) && isUpgraded(player,item.id);
     const detail = ownedUpgraded ? displayItemDesc(player,item) : stripUpgradeCopy(doc.detail || item.desc);
     const example = ownedUpgraded
       ? (item.id === 'wog'
@@ -3035,6 +3113,19 @@ function clearHolds(){
 
 
 function normalizeSellSelection(player){
+  if (player.selectedSellIsInverted) {
+    const invInv = player.invertedInv || [];
+    if (!invInv.length) {
+      player.selectedSellIsInverted = false;
+      player.selectedSellIndex = null;
+      // Fall through to regular inv normalization
+    } else {
+      if (!Number.isInteger(player.selectedSellIndex) || player.selectedSellIndex < 0 || player.selectedSellIndex >= invInv.length) {
+        player.selectedSellIndex = invInv.length - 1;
+      }
+      return player.selectedSellIndex;
+    }
+  }
   if (!player.inv.length) {
     player.selectedSellIndex = null;
     return null;
@@ -3045,34 +3136,50 @@ function normalizeSellSelection(player){
   return player.selectedSellIndex;
 }
 
-function getSellRefund(player, index = normalizeSellSelection(player)){
-  if (index === null || index === undefined || !player.inv.length) return null;
-  const id = player.inv[index];
+function getSellRefund(player, index = normalizeSellSelection(player), forceInverted = null){
+  const isInverted = forceInverted !== null ? forceInverted : (player.selectedSellIsInverted || false);
+  const inv = isInverted ? (player.invertedInv || []) : player.inv;
+  if (index === null || index === undefined || !inv.length) return null;
+  const id = inv[index];
   const item = shopItems.find(it=>it.id===id);
   if (!item) return null;
   const paid = player.paid[id] ?? shopPrice(player,item);
   const refund = Math.max(0, Math.min(paid - 1, Math.floor(paid * 0.55)));
-  return { index, id, item, paid, refund };
+  return { index, id, item, paid, refund, isInverted };
 }
 
-function buyItem(itemId, btn){
+function buyItem(itemId, btn, isInverted = false){
   const player = activePlayer();
   const item = shopItems.find(it=>it.id===itemId);
   const cost = shopPrice(player,item);
-  if (!item || player.cash < cost || player.inv.length >= 6) return;
+  const ownedAll = new Set([...player.inv, ...(player.invertedInv || [])]);
+  if (!item || player.cash < cost) return;
+  if (!isInverted && player.inv.length >= 6) return;
+  if (ownedAll.has(itemId)) return;
   ensureAudio();
   player.cash -= cost;
-  player.inv.push(itemId);
-  player.selectedSellIndex = player.inv.length - 1;
+  if (isInverted) {
+    player.invertedInv = player.invertedInv || [];
+    player.invertedInv.push(itemId);
+    player.selectedSellIsInverted = true;
+    player.selectedSellIndex = player.invertedInv.length - 1;
+  } else {
+    player.inv.push(itemId);
+    player.selectedSellIsInverted = false;
+    player.selectedSellIndex = player.inv.length - 1;
+  }
   player.paid[itemId] = cost;
+  const stockIdx = player.stock.indexOf(itemId);
+  if (stockIdx >= 0 && player.stockInverted) player.stockInverted.splice(stockIdx, 1);
   player.stock = player.stock.filter(id => id !== itemId);
   if (itemId === 'rerollbaron') {
     const extra = extraRollAllowance(player);
     state.rollsLeft += extra;
     setMoment(item.emoji, 'Permanent reroll gained', `This turn and future turns get +${extra} extra roll${extra===1?'':'s'}.`);
   }
-  logLine(`Bought <b>${item.emoji} ${item.name}</b> for $${cost}. Effects apply to future scores only.`);
-  toast(`${item.emoji} ${item.name} bought!`, `${displayItemDesc(player,item)} Applies from your next scored turn, not retroactively.`);
+  const invertedNote = isInverted ? ' ✦ Inverted — uses no dice slot.' : '';
+  logLine(`Bought <b>${item.emoji} ${item.name}</b> for $${cost}.${invertedNote} Effects apply to future scores only.`);
+  toast(`${item.emoji} ${item.name} bought!${isInverted ? ' ✦ Inverted' : ''}`, `${displayItemDesc(player,item)}${isInverted ? ' This is an inverted dice — it uses no slot, so you can own more than 6.' : ' Applies from your next scored turn, not retroactively.'}`);
   sfx.buy();
   const rect = btn.getBoundingClientRect();
   burst(rect.left+30, rect.top+30, 34);
@@ -3395,17 +3502,24 @@ els.sellLastBtn.onclick = () => {
   if (!sale) return;
   const salvageRolls = has(player,'salvager') && state.hasRolled && !state.scoring ? (isUpgraded(player,'salvager') ? 2 : 1) : 0;
   ensureAudio();
-  player.inv.splice(sale.index, 1);
+  if (sale.isInverted) {
+    player.invertedInv.splice(sale.index, 1);
+    if (!player.invertedInv.length) player.selectedSellIsInverted = false;
+    player.selectedSellIndex = player.invertedInv.length ? Math.min(sale.index, player.invertedInv.length - 1) : (player.inv.length ? player.inv.length - 1 : null);
+  } else {
+    player.inv.splice(sale.index, 1);
+    player.selectedSellIndex = player.inv.length ? Math.min(sale.index, player.inv.length - 1) : null;
+  }
   delete player.paid[sale.id];
   if (player.upgrades) delete player.upgrades[sale.id];
   player.cash += sale.refund;
-  player.selectedSellIndex = player.inv.length ? Math.min(sale.index, player.inv.length - 1) : null;
   if (salvageRolls) {
     state.rollsLeft += salvageRolls;
     setMoment('♻️','Salvage Roller triggered',`Selling ${sale.item.name} gave +${salvageRolls} roll${salvageRolls===1?'':'s'}.`);
     toast('♻️ Salvage roll gained', `+${salvageRolls} roll${salvageRolls===1?'':'s'} from selling a dice.`);
   }
-  logLine(`<b>${player.name}</b> sold <b>${sale.item.emoji} ${displayItemName(player, sale.item)}</b> for $${sale.refund}. Bought for $${sale.paid}. Shop stock stays the same.${salvageRolls ? ` Salvage Roller gave +${salvageRolls} roll${salvageRolls===1?'':'s'}.` : ''}`);
+  const invertedNote = sale.isInverted ? ' (inverted — was using no slot).' : '';
+  logLine(`<b>${player.name}</b> sold <b>${sale.item.emoji} ${displayItemName(player, sale.item)}</b> for $${sale.refund}${invertedNote} Bought for $${sale.paid}. Shop stock stays the same.${salvageRolls ? ` Salvage Roller gave +${salvageRolls} roll${salvageRolls===1?'':'s'}.` : ''}`);
   toast('Sold selected dice', `Sold ${sale.item.name} for +$${sale.refund}. Sell price is always lower than what you paid.`);
   sfx.score(sale.refund);
   render();
