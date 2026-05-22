@@ -313,7 +313,7 @@ async function readBoard(blobSdk, pathname) {
   }
 }
 
-async function writeBoard(blobSdk, pathname, board, current) {
+async function writeBoard(blobSdk, pathname, board, current, forceOverwrite = false) {
   const payload = {
     leaderboard: compatBoard(board.scores || []),
     updatedAt: nowIso()
@@ -327,7 +327,12 @@ async function writeBoard(blobSdk, pathname, board, current) {
     cacheControlMaxAge: 60
   };
 
-  if (current?.exists && current?.etag) {
+  if (forceOverwrite) {
+    // Last-resort fallback after repeated ETag conflicts.
+    // We still re-read and merge before this path, but we avoid getting stuck
+    // forever when Vercel returns a stale ETag under heavy multi-tab writes.
+    options.allowOverwrite = true;
+  } else if (current?.exists && current?.etag) {
     options.allowOverwrite = true;
     options.ifMatch = current.etag;
   } else if (current?.exists) {
@@ -472,6 +477,41 @@ async function mergeAndSave(incomingEntries) {
 
       await sleep(75 * attempt + Math.floor(Math.random() * 125));
     }
+  }
+
+  if (lastError && isRetryableWriteError(lastError)) {
+    // Final safety net for several tabs/devices writing at once.
+    // Re-read, merge again, then overwrite without ifMatch so the local score
+    // is not permanently stuck behind an ETag mismatch.
+    const current = await readBoard(blobSdk, pathname);
+    const nextBoard = compatBoard([
+      ...(current.board?.scores || []),
+      ...incoming
+    ]);
+
+    if (boardsEqual(current.board, nextBoard)) {
+      return {
+        saved: false,
+        created: false,
+        attempts: MAX_WRITE_ATTEMPTS,
+        pathname,
+        board: current.board,
+        etag: current.etag,
+        updatedAt: current.updatedAt
+      };
+    }
+
+    const written = await writeBoard(blobSdk, pathname, nextBoard, current, true);
+
+    return {
+      saved: true,
+      created: !current.exists,
+      attempts: MAX_WRITE_ATTEMPTS + 1,
+      pathname,
+      board: nextBoard,
+      etag: written?.etag || null,
+      updatedAt: nowIso()
+    };
   }
 
   throw lastError || new Error('Could not save leaderboard after retries.');

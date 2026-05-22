@@ -2578,9 +2578,15 @@ function renderLeaderboardModalList(){
   els.leaderboardModalList.innerHTML = rows.join('');
 }
 
-function openLeaderboardModal(){
+async function openLeaderboardModal(){
   renderLeaderboardModalList();
   if (els.leaderboardModal) els.leaderboardModal.classList.add('show');
+
+  // Manual Top 10 refresh: opening the leaderboard should check Blob once
+  // and push any local score that qualifies for the shared Top 10.
+  // This is user-triggered, not polling.
+  await loadOnlineLeaderboard(loadLocalLeaderboardEntries(), true);
+  renderLeaderboardModalList();
 }
 
 function renderLeaderboard(){
@@ -2600,10 +2606,10 @@ function renderLeaderboard(){
 
   if (els.leaderboardStatus) {
     els.leaderboardStatus.textContent = state.leaderboardSaving
-      ? 'Saving qualifying Top 10 score to Blob...'
+      ? 'Checking Blob and syncing qualifying local Top 10 scores...'
       : state.leaderboardOnline
-        ? 'Blob loaded once. Only new shared Top 10 scores are posted.'
-        : 'Local fallback only. Blob will only be checked again on the next page load.';
+        ? 'Shared Blob leaderboard loaded. Open full Top 10 to refresh and push local scores.'
+        : 'Local fallback shown. Open full Top 10 to check Blob and push local scores.';
   }
 
   if (!els.leaderboardList) { renderLeaderboardModalList(); return; }
@@ -2622,6 +2628,29 @@ function renderAllTime(){
 }
 
 let localLeaderboardSyncInFlight = false;
+
+function leaderboardEntriesContainAll(haystack = [], needles = []){
+  const onlineSignatures = new Set(sortedLeaderboardScores(haystack || []).map(leaderboardEntrySignature));
+  return prepareLeaderboardEntries(needles || []).every(entry => onlineSignatures.has(leaderboardEntrySignature(entry)));
+}
+
+async function refreshOnlineLeaderboardAfterSaveFailure(localEntries = [], wantedEntries = []){
+  try {
+    const response = await fetch(`/api/leaderboard?t=${Date.now()}`, { cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.error || data?.warning) return false;
+
+    const online = normalizeLeaderboardPayload(data);
+    state.leaderboardOnline = true;
+    state.leaderboardLoadedOnce = true;
+    mergeOnlineAndLocalLeaderboard(online.scores, localEntries);
+
+    return leaderboardEntriesContainAll(online.scores, wantedEntries);
+  } catch (error) {
+    return false;
+  }
+}
+
 async function pushLocalLeaderboardToOnline(entries){
   const localEntries = prepareLeaderboardEntries(entries || []);
   const qualifiers = getSharedTop10Qualifiers(localEntries);
@@ -2650,10 +2679,18 @@ async function pushLocalLeaderboardToOnline(entries){
       if (data?.saved) toast('🌍 Local score synced', 'Your local Top 10 score was saved to the shared Blob leaderboard.');
     }
   } catch (error) {
-    state.leaderboardOnline = false;
-    // Do not wipe the player’s browser scores if Blob sync fails.
-    state.leaderboard = { scores: sortedLeaderboardScores(localEntries) };
-    toast('⚠️ Local score not synced', error.message || 'Blob did not accept the local score yet, but it is still kept on this device.');
+    const alreadyOnline = await refreshOnlineLeaderboardAfterSaveFailure(localEntries, qualifiers);
+
+    if (alreadyOnline) {
+      toast('🌍 Local score synced', 'Another tab already saved this score. The shared Top 10 is refreshed.');
+    } else if (state.leaderboardOnline) {
+      toast('⚠️ Local score kept', 'Blob was refreshed, but this local score was not accepted yet. It will retry when you open Top 10 again.');
+    } else {
+      state.leaderboardOnline = false;
+      // Do not wipe the player’s browser scores if Blob sync fails.
+      state.leaderboard = { scores: sortedLeaderboardScores(localEntries) };
+      toast('⚠️ Local score not synced', error.message || 'Blob did not accept the local score yet, but it is still kept on this device.');
+    }
   } finally {
     localLeaderboardSyncInFlight = false;
     state.leaderboardSaving = false;
@@ -2744,9 +2781,17 @@ async function submitLeaderboardScores(entries){
       toast('🏆 Top 10 checked', 'Blob checked this qualifying score, but the shared Top 10 did not change.');
     }
   } catch (error) {
-    state.leaderboardOnline = false;
-    state.leaderboard = { scores: localTop };
-    toast('⚠️ Leaderboard not saved online', error.message || 'Blob sync failed. Check BLOB_READ_WRITE_TOKEN in Vercel Production.');
+    const alreadyOnline = await refreshOnlineLeaderboardAfterSaveFailure(localTop, qualifiers);
+
+    if (alreadyOnline) {
+      toast('🏆 Online Top 10 updated!', 'Another tab already saved this score. The shared list was refreshed.');
+    } else if (state.leaderboardOnline) {
+      toast('⚠️ Local score kept', 'Blob was refreshed, but this score was not accepted yet. Open Top 10 to retry sync.');
+    } else {
+      state.leaderboardOnline = false;
+      state.leaderboard = { scores: localTop };
+      toast('⚠️ Leaderboard not saved online', error.message || 'Blob sync failed. Check BLOB_READ_WRITE_TOKEN in Vercel Production.');
+    }
   } finally {
     state.leaderboardSaving = false;
     renderLeaderboard();
