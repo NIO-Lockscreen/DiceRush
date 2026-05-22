@@ -91,7 +91,13 @@ function entrySignature(entry) {
   ].join('|');
 }
 
+// Coarser key: same player name + same score = redundant, regardless of mode/game details.
+function nameScoreKey(entry) {
+  return `${cleanName(entry?.name).toLowerCase()}|${Math.floor(Number(entry?.score || 0))}`;
+}
+
 function dedupeEntries(entries) {
+  // Pass 1 – collapse exact-same-game duplicates (full signature); keep the oldest.
   const bySignature = new Map();
   (entries || []).map(cleanEntry).filter(Boolean).forEach((entry) => {
     const sig = entrySignature(entry);
@@ -100,7 +106,18 @@ function dedupeEntries(entries) {
       bySignature.set(sig, entry);
     }
   });
-  return [...bySignature.values()];
+
+  // Pass 2 – collapse same name+score regardless of mode/game metadata; keep the oldest.
+  const byNameScore = new Map();
+  [...bySignature.values()].forEach((entry) => {
+    const key = nameScoreKey(entry);
+    const existing = byNameScore.get(key);
+    if (!existing || String(entry.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
+      byNameScore.set(key, entry);
+    }
+  });
+
+  return [...byNameScore.values()];
 }
 
 function sortAndTrim(board) {
@@ -133,31 +150,43 @@ function lowestScore(entries) {
 
 function mergeEntries(board, entries) {
   const before = JSON.stringify(sortAndTrim({ scores: board.scores || [] }).scores);
+  // Track both the full signature and the coarse name+score key so concurrent retries
+  // and same-score resubmissions are both blocked from creating duplicate rows.
   const beforeSignatures = new Set((board.scores || []).map(entrySignature));
+  const beforeNameScores = new Set((board.scores || []).map(nameScoreKey));
   const accepted = [];
 
   for (const entry of entries) {
     const sig = entrySignature(entry);
+    const nsKey = nameScoreKey(entry);
     const couldEnter = entry.score > lowestScore(board.scores || []);
-    if (couldEnter && !beforeSignatures.has(sig)) {
+    // Reject if: score can't reach the leaderboard, already present by full signature,
+    // or already present by name+score (identical result from a different game session).
+    if (couldEnter && !beforeSignatures.has(sig) && !beforeNameScores.has(nsKey)) {
       board.scores.push(entry);
       beforeSignatures.add(sig);
+      beforeNameScores.add(nsKey);
     }
   }
 
   sortAndTrim(board);
   const after = JSON.stringify(board.scores);
   const afterSignatures = new Set((board.scores || []).map(entrySignature));
+  const afterNameScores = new Set((board.scores || []).map(nameScoreKey));
   const saved = before !== after;
 
+  const parsedBefore = JSON.parse(before);
   for (const entry of entries) {
     const sig = entrySignature(entry);
+    const nsKey = nameScoreKey(entry);
+    const wasAlreadyPresent =
+      parsedBefore.some((old) => entrySignature(old) === sig || nameScoreKey(old) === nsKey);
     accepted.push({
       id: entry.id,
       name: entry.name,
       score: entry.score,
       mode: entry.mode,
-      saved: saved && afterSignatures.has(sig) && !JSON.parse(before).some((oldEntry) => entrySignature(oldEntry) === sig)
+      saved: saved && (afterSignatures.has(sig) || afterNameScores.has(nsKey)) && !wasAlreadyPresent
     });
   }
 
