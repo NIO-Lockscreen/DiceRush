@@ -186,6 +186,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
 .rollShopCard{margin-top:14px;border-radius:24px;border:1px solid rgba(255,212,105,.20);background:radial-gradient(circle at 18% 0%,rgba(255,212,105,.16),transparent 38%),rgba(0,0,0,.18);padding:14px;position:relative;overflow:hidden}.rollShopCard::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.05),transparent 55%);pointer-events:none}.rollShopHead{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.rollShopTitle{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:1000}.rollShopSub{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}.rollShopGrid{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rollShopBtn{min-height:78px;text-align:left;border-radius:18px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);padding:10px;display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;transition:transform .16s ease,border-color .16s ease,background .16s ease}.rollShopBtn:hover:not(:disabled){transform:translateY(-2px);background:rgba(255,255,255,.12);border-color:rgba(255,212,105,.45);box-shadow:0 0 28px rgba(255,212,105,.10)}.rollShopIcon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(255,212,105,.9),rgba(255,98,208,.72));font-size:22px}.rollShopName{font-weight:1000;letter-spacing:-.03em}.rollShopText{margin-top:2px;color:var(--muted);font-size:11px;line-height:1.25}.rollShopCost{color:var(--gold);font-weight:1000}.slot.upgraded{border-color:rgba(255,212,105,.95);background:linear-gradient(180deg,rgba(255,212,105,.27),rgba(103,221,255,.11));box-shadow:0 0 0 2px rgba(255,212,105,.18),0 0 34px rgba(255,212,105,.20)}.slot.upgraded .slotName{color:#ffe39b}.slot.upgraded .slotText{color:#ffe39b}.category.heatMiss{opacity:.78}.upgradeSpark{position:fixed;z-index:67;pointer-events:none;font-size:38px;animation:upgradeSparkFly .9s ease-out forwards;filter:drop-shadow(0 0 18px rgba(255,212,105,.7))}@keyframes upgradeSparkFly{0%{opacity:0;transform:translate(-50%,16px) scale(.5) rotate(-18deg)}20%{opacity:1;transform:translate(-50%,0) scale(1.2) rotate(8deg)}100%{opacity:0;transform:translate(-50%,-86px) scale(.8) rotate(38deg)}}@media(max-width:560px){.rollShopGrid{grid-template-columns:1fr}.rollShopBtn{min-height:68px}}
 
 .badDiceCallout{position:fixed;left:50%;top:28%;z-index:72;pointer-events:none;transform:translate(-50%,-50%);width:min(430px,calc(100vw - 30px));padding:16px 18px;border-radius:26px;text-align:center;border:1px solid rgba(255,111,130,.55);background:radial-gradient(circle at 50% 0%,rgba(255,111,130,.28),transparent 44%),linear-gradient(145deg,rgba(52,10,22,.97),rgba(12,8,24,.96));box-shadow:0 30px 96px rgba(0,0,0,.58),0 0 55px rgba(255,111,130,.28);animation:badDiceBox .22s cubic-bezier(.16,1.1,.24,1) both, badDiceShake .16s linear 3 .22s}.badDiceKicker{font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:1000;color:#ff9cab}.badDiceBig{font-size:clamp(32px,8vw,58px);line-height:.95;font-weight:1000;letter-spacing:-.065em;margin-top:5px;color:#ff6f82;text-shadow:0 0 22px rgba(255,111,130,.34)}.badDiceCopy{margin-top:8px;color:rgba(255,255,255,.82);font-size:14px;font-weight:900}.badDiceEmoji{font-size:42px;margin-bottom:4px;filter:drop-shadow(0 0 18px rgba(255,111,130,.52))}@keyframes badDiceBox{from{opacity:0;transform:translate(-50%,-42%) scale(.78) rotate(-2deg)}to{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}}@keyframes badDiceShake{0%,100%{transform:translate(-50%,-50%) rotate(0)}25%{transform:translate(calc(-50% - 7px),-50%) rotate(-1.5deg)}75%{transform:translate(calc(-50% + 7px),-50%) rotate(1.5deg)}}
+.gamblerWipeCallout{position:fixed;left:50%;top:35%;z-index:73;pointer-events:none;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 24px));padding:20px 22px;border-radius:28px;text-align:center;border:2px solid rgba(255,50,50,.7);background:radial-gradient(circle at 50% 0%,rgba(255,30,30,.35),transparent 40%),radial-gradient(circle at 80% 90%,rgba(180,0,60,.25),transparent 40%),linear-gradient(145deg,rgba(60,5,5,.98),rgba(15,4,4,.97));box-shadow:0 32px 110px rgba(0,0,0,.70),0 0 70px rgba(255,30,30,.38),0 0 140px rgba(255,30,30,.15);animation:wipeBox .28s cubic-bezier(.12,1.2,.2,1) both,wipeShake .12s linear 4 .28s}.gamblerWipeEmoji{font-size:52px;margin-bottom:4px;filter:drop-shadow(0 0 22px rgba(255,60,60,.65));animation:wipeEmoji .6s cubic-bezier(.3,1.4,.4,1) both .1s}.gamblerWipeKicker{font-size:11px;text-transform:uppercase;letter-spacing:.22em;font-weight:1000;color:#ff9090;margin-bottom:4px}.gamblerWipeBig{font-size:clamp(28px,7vw,54px);line-height:.95;font-weight:1000;letter-spacing:-.06em;margin-top:6px;color:#ff4444;text-shadow:0 0 28px rgba(255,50,50,.55)}.gamblerWipeSub{margin-top:10px;color:rgba(255,200,200,.88);font-size:14px;font-weight:900;line-height:1.35}@keyframes wipeBox{from{opacity:0;transform:translate(-50%,-38%) scale(.72) rotate(-3deg)}to{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}}@keyframes wipeShake{0%,100%{transform:translate(-50%,-50%) rotate(0)}25%{transform:translate(calc(-50% - 9px),-50%) rotate(-2.5deg)}75%{transform:translate(calc(-50% + 9px),-50%) rotate(2.5deg)}}@keyframes wipeEmoji{from{transform:scale(0) rotate(-45deg)}60%{transform:scale(1.3) rotate(8deg)}to{transform:scale(1) rotate(0)}}
 
 
 
@@ -451,7 +452,7 @@ const shopItems = [
   {id:'coffee', emoji:'☕', name:'Espresso Die', rarity:'rare', price:26, desc:'Bank after only one roll to gain +30 score. Risky but strong.'},
   {id:'goblin', emoji:'👺', name:'Greed Goblin', rarity:'uncommon', price:18, desc:'If dice total is exactly 13, add +33 score and +$33. Big, but narrow.'},
   {id:'clown', emoji:'🤡', name:'Clown Car Dice', rarity:'legend', price:40, desc:'Four of a kind gets +40 score before its x4 target bonus. Honk honk.'},
-  {id:'accountant', emoji:'🧮', name:'Accountant Cube', rarity:'uncommon', price:18, desc:'Chance gets +5 score for each dice you own. Scales, but Chance has no target multiplier.'},
+  {id:'accountant', emoji:'🧮', name:'Accountant Cube', rarity:'uncommon', price:18, desc:'Every bank gets +2 per dice owned. Chance gets a bigger audit: +7 per dice owned. No Chance multiplier, but it helps everywhere.'},
   {id:'dragon', emoji:'🐉', name:'Dragon Hoard', rarity:'legend', price:46, desc:'Any score of 60+ gets +30 score and +$40 extra. Snowball monster.'},
   {id:'cheese', emoji:'🧀', name:'Cheese Tax', rarity:'common', price:12, desc:'Every 5 showing adds +5 score and +$5. Fine little snack.'},
   {id:'wizard', emoji:'🧙', name:'Tiny Wizard', rarity:'rare', price:25, desc:'Exactly 3 different dice faces adds +33 score. Strong and fairly chaseable.'},
@@ -465,7 +466,7 @@ const shopItems = [
   {id:'wog', emoji:'🪦', name:'WOG', rarity:'cursed', price:2, desc:'Cursed bad dice. It steals points when you bank until you upgrade it into WOW.'},
   {id:'moon', emoji:'🌙', name:'Tiny Moon', rarity:'rare', price:25, desc:'If all dice are 1-3, add +120 score. Rare tiny-roll jackpot.'},
   {id:'alien', emoji:'👽', name:'Suspicious Alien', rarity:'rare', price:30, desc:'Five different faces adds +140 score. Strong spread-roll payoff.'},
-  {id:'grandma', emoji:'👵', name:'Grandma’s Purse', rarity:'uncommon', price:18, desc:'Upper-section banks get +20 before heat. Top-bracket specialist.'},
+  {id:'grandma', emoji:'👵', name:'Grandma’s Purse', rarity:'uncommon', price:18, desc:'Upper-section banks get +20 before heat. She seems modest... but she’s been saving up. Upgrade: she opens wide for those who know when to use her.'},
   {id:'lawsuit', emoji:'⚖️', name:'Lawsuit Dice', rarity:'uncommon', price:18, desc:'Every 1 adds +9 score. Useful legal nonsense.'},
   {id:'viking', emoji:'🪓', name:'Viking Audit', rarity:'rare', price:30, desc:'Three or more odd dice adds +30 score. Strong and frequent enough to respect.'},
   {id:'jackpot', emoji:'💰', name:'One Pair Jackpot', rarity:'legend', price:56, desc:'Exactly one pair, no triples, adds +140 score. Shockingly powerful.'},
@@ -491,12 +492,15 @@ const shopItems = [
   {id:'ufo', emoji:'🛸', name:'UFO Abduction', rarity:'legend', price:56, desc:'Before scoring, a random die becomes a 6, and the final score gets +40.'},
 
   {id:'rerollbaron', emoji:'🔁', name:'Reroll Baron', rarity:'rare', price:420, desc:'Permanently starts every turn with +1 extra roll. Upgrade: starts with +2 extra rolls.'},
-  {id:'salvager', emoji:'♻️', name:'Salvage Roller', rarity:'uncommon', price:100, desc:'Selling any dice during an active turn also gives +1 roll. Upgrade: selling gives +2 rolls.'},
-  {id:'gambler', emoji:'🎲', name:'Gambler’s Floor', rarity:'rare', price:34, desc:'Your heat floor is permanently 2x, but any Yahtzee busts the banked score to 0. Upgrade: heat floor becomes 3x, Yahtzee still busts score but pays cash.'},
+  {id:'salvager', emoji:'♻️', name:'Salvage Roller', rarity:'uncommon', price:150, desc:'Selling any dice during an active turn also gives +1 roll. Upgrade: selling gives +2 rolls.'},
+  {id:'gambler', emoji:'🎲', name:'Gambler’s Floor', rarity:'rare', price:34, desc:'Your heat floor is permanently 2x, but any Yahtzee wipes your ENTIRE accumulated score to 0. No coming back. Upgrade: heat floor becomes 3x, wipe still happens but pays $100 consolation cash.'},
   {id:'gamebreaker', emoji:'🧨', name:'Game Breaker', rarity:'legend', price:58, modeOnly:'forced', desc:'Forced mode only. Break the forced order and bank in any unused row you choose. Upgrade: off-order banks also gain a bigger pre-heat bonus.'},
   {id:'pointstealer', emoji:'🫳', name:'Point Stealer', rarity:'rare', price:32, playersOnly:2, desc:'2-player only. Bank with 3+ matching dice to choose whether to swap total scores with your opponent. Upgrade: triggers on a pair and steals +25 extra.'},
   {id:'blackhole', emoji:'🕳️', name:'Black Hole 30', rarity:'legend', price:52, desc:'Five 6s / dice total 30 adds +700 score and +$250; totals 26-29 add +100. True deep-space jackpot.'},
-  {id:'sixtyseven', emoji:'6️⃣7️⃣', name:'67 Dice', rarity:'rare', price:67, desc:'Your banked score becomes exactly 67, no matter the row, roll, or heat. Upgrade: rolling a 6 has a 50% chance to turn another die into an impossible 7, and a 7 adds +67 more score.'}
+  {id:'sixtyseven', emoji:'6️⃣7️⃣', name:'67 Dice', rarity:'rare', price:67, desc:'Your banked score becomes exactly 67, no matter the row, roll, or heat. Upgrade: rolling a 6 has a 50% chance to turn another die into an impossible 7, and a 7 adds +67 more score.'},
+  {id:'streak', emoji:'📈', name:'Streak Keeper', rarity:'uncommon', price:17, desc:'If this bank’s pre-heat score matches or beats your last scored bank, gain +20 bonus. Upgrade: the reward doubles to +40. Rewards consistent play.'},
+  {id:'rebound', emoji:'🏀', name:'Rebound', rarity:'uncommon', price:17, desc:'If your previous bank scored 0 (you missed last round), this bank gains +25 before heat. Upgraded: +50. Rewards pulling back after disaster.'},
+  {id:'heattrader', emoji:'💹', name:'Heat Trader', rarity:'rare', price:28, desc:'If your pre-heat score is under 15, sacrifice the heat multiplier and gain its value x10 as flat bonus score instead. 5x heat -> +50 flat. Upgrade: threshold rises to 25 and the trade pays x14.'}
 ];
 const diceDocs = {
   "mirror": { detail: "Changes one die before scoring, not visually before you bank. It copies the lowest die into the highest die, making pairs and totals better.", example: "Example: 1-2-3-4-6 becomes 6-2-3-4-6 for scoring. Chance gains +5, and Sixes gets another 6." },
@@ -570,7 +574,10 @@ const diceDocs = {
   "unicorn": { detail: "Very specific roll-trigger straight. It wants exactly 2, 3, 4, 5, and 6, then saves the jackpot immediately.", example: "Example: roll 2-3-4-5-6 to save +500 score and +$100 for the bank." },
   "ufo": { detail: "Always-on legendary chaos. A random die becomes a 6 before category scoring, then UFO adds a flat +40 score bonus.", example: "Example: 1-2-3-4-5 could become 1-2-3-4-6, then UFO adds +40." },
   "blackhole": { detail: "Legendary roll-trigger jackpot dice. Total 30 is five 6s, so it saves a huge payout immediately; near-black-hole totals also save gravity points.", example: "Example: roll 6-6-6-6-6 to save +700 score and +$250. Totals 26-29 save +100." },
-  "sixtyseven": { detail: "A weird fixed-score dice. It ignores category score and heat, then banks exactly 67 points. It is useful when forced mode hands you a bad row or your roll is trash.", example: "Example: Forced mode wants Sixes, but you roll no 6s. 67 Dice still banks 67. Upgraded: if a rolled 6 creates a 7, the bank becomes 134 instead." }
+  "sixtyseven": { detail: "A weird fixed-score dice. It ignores category score and heat, then banks exactly 67 points. It is useful when forced mode hands you a bad row or your roll is trash.", example: "Example: Forced mode wants Sixes, but you roll no 6s. 67 Dice still banks 67. Upgraded: if a rolled 6 creates a 7, the bank becomes 134 instead." },
+  "streak": { detail: "A consistency reward dice. It checks the pre-heat score (all bonuses applied, before multiplier) against the last turn you banked. If it is at least as good, you get +20 added before heat.", example: "Example: Last turn you scored 18 pre-heat. This turn you have 20 pre-heat - Streak Keeper fires for +20 before the multiplier." },
+  "rebound": { detail: "A comeback dice. It checks if the previous banked score was exactly 0 (you completely missed). If so, this bank gets +25 bonus before the heat multiplier applies.", example: "Example: Last turn you scored 0. This turn you have any score -- Rebound fires for +25 before heat." },
+  "heattrader": { detail: "An insurance dice. If all bonuses together still leave you under 15 before heat applies, it trades away the heat multiplier and converts it into flat score instead.", example: "Example: Pre-heat score is 8, heat is 4x. Heat Trader trades the 4x for +40 flat, final score is 48 instead of 32." }
 };
 
 
@@ -578,7 +585,7 @@ const ROLL_SHOP_COSTS = { rerollDie: 250, cashScore: 150, extraRoll: 500, upgrad
 const UPGRADE_RARITY_COSTS = { cursed: 150, common: 200, uncommon: 350, rare: 500, legend: 700 };
 const UPGRADE_SPECIAL_IDS = ['rerollbaron','salvager','gambler','gamebreaker','pointstealer','sixtyseven'];
 const diceUpgradeText = {
-  mirror:'Prism upgrade: when it copies a die, it also adds a high-face bonus before heat.', vampire:'Bloodmoon upgrade: lower-section 6s become bonus points and cash after the bite.', boom:'Mega bomb: sixes explode harder and become cash too.', snake:'Royal snake: 1s become premium on every row: bigger score, cash, and a huge Ones payout.', cat:'Golden cat: better double chance and sometimes triples the final score.', printer:'Laser printer: positive banks also get score before heat and much more cash.', tax:'Tax refund: dead scores become points and pay more cash.', coupon:'Black-card coupon: shop prices become cheaper and roll-shop powers get discounted.', space:'Orbital upgrade: Large Straight gets an even bigger rocket payoff, and near-space straight rolls still get help.', mouse:'Mansion mouse: real Full Houses become huge; two-pair misses still get a consolation bite but no heat.', slot:'Jackpot upgrade: triples pay score as well as money.', neon:'Neon overdrive: activates from lower totals and pays more.', royal:'Crown upgrade: Yahtzee gets even more absurd; four-of-kind in Yahtzee gets a consolation crown.', chaos:'Controlled chaos: random bonus is much bigger and never tiny.', magnet:'Mega magnet: any three-run adds points, and Small Straight becomes easier to rescue.', duck:'Golden duck: twos pay double score and more cash.', soup:'Gourmet soup: low totals up to 15 become useful.', bacon:'Crispy bacon: 4+2 combo hits harder, and either ingredient gives a snack bonus.', dentist:'Diamond dentist: every pair pays a lot more.', banana:'Steel banana: zero rescues become strong enough to matter.', coffee:'Triple espresso: fast banking pays much more.', goblin:'Greed king: totals near 13 also pay.', clown:'Circus upgrade: Four of a Kind becomes a monster and triples get a honk.', accountant:'Chief accountant: Chance scaling doubles and other categories get a small audit.', dragon:'Ancient dragon: wakes earlier, pays more score and cash.', sock:'Dry sock: odd-score fixer becomes real points.', cheese:'Aged cheese: fives pay double.', wizard:'Archwizard: mixed-face rolls get a stronger spell.', panic:'Panic nuke: weak scores get a much larger save.', troll:'Mountain troll: all-even/all-odd is huge, and four-of-a-kind parity still helps.', pizza:'Family pizza: totals near 25 count too.', raccoon:'Trash king: 1s become premium garbage.', forklift:'Heavy forklift: even one 6 helps; two 6s hit hard.', microwave:'Industrial microwave: even totals beep harder.', glue:'Super glue: held dice become high-value planning.', wog:'WOW: curse removed. Never steals points. Yahtzee gives +666, any roll with 1s gives +111 plus +22 per 1 and +$66, and all other rolls still give +66 and +$22.', moon:'Big moon: tiny-ish rolls up to 4 are now strong.', alien:'Alien council: four or five different faces pay hard.', grandma:'Grandma vault: upper-section scores get a much bigger pre-heat purse.', lawsuit:'Supreme court: every 1 pays serious damages.', viking:'Berserker audit: two or more odd dice can trigger.', jackpot:'Mega jackpot: any pair helps, exact one-pair explodes.', couch:'Recliner throne: final-roll banking is much better, but even earlier banks get comfort.', treasure:'Golden trophy: low scores get rescued before heat.', opera:'Opera finale: three-run progress can sing.', otter:'Senior otter: 3s pay real score and cash.', minty:'Mint factory: 4s pay real score and cash.', doskal:'Golden flush: scores divisible by 5 get cleaned up.', pretzel:'Mega pretzel: four or more different faces get a better knot.', polse:'Loaded pølse: totals around 18 count.', stink:'Toxic stink: two even dice can activate.', mousetrap:'Bear trap: first Three of a Kind pays score and more cash.', brainfreeze:'Deep freeze: holding four or more dice can arm value.', hedgehog:'Dragon hedgehog: cash hoards convert much harder.', sykkel:'Turbo sykkel: any three-run pays more; four-run pays a lot.', garlic:'Holy garlic: Yahtzee pays score and big money.', goose:'War goose: straights honk score and more cash.', roller:'Roller inferno: triples scale much harder.', mutant:'Stable mutant: upgrade chance becomes 50%, still choosing the die value your target needs most.', lifebuoy:'Rescue boat: weak banks are lifted higher.', sushi:'Omakase combo: two-pair/full-house pair structures pay more.', trolltunga:'Legendary peak: odd Yahtzees become absurdly huge; odd triples still matter.', lightning:'Thunder round: quick banks are explosive.', unicorn:'Rainbow unicorn: 2-3-4-5-6 becomes a true jackpot, and large straights still sparkle.', ufo:'Mothership: sixes and abduction pay more.', rerollbaron:'Executive rerolls: every turn starts with +2 extra rolls, and quick banks get a small focus bonus.', salvager:'Junkyard engine: selling a dice gives +2 rolls instead of +1, and salvage turns can add bonus score.', gambler:'High roller floor: heat floor becomes x3. Yahtzee still busts score to 0, but pays a cash consolation.', gamebreaker:'Cheat code upgrade: off-order forced-mode banks get a larger pre-heat bonus.', pointstealer:'Grand theft upgrade: a pair is enough to trigger the swap offer, and a successful steal takes +25 extra.', sixtyseven:'Lucky 67 upgrade: any real roll with a 6 has a 50% chance to mutate another die into a visible 7. Banking with a 7 adds +67 on top of the flat 67.', blackhole:'Event horizon: 30 is apocalyptic; 26+ is still excellent.'
+  mirror:'Prism upgrade: when it copies a die, it also adds a high-face bonus before heat.', vampire:'Bloodmoon upgrade: lower-section 6s become bonus points and cash after the bite.', boom:'Mega bomb: sixes explode harder and become cash too.', snake:'Royal snake: 1s become premium on every row: bigger score, cash, and a huge Ones payout.', cat:'Golden cat: better double chance and sometimes triples the final score.', printer:'Laser printer: positive banks also get score before heat and much more cash.', tax:'Tax refund: dead scores become points and pay more cash.', coupon:'Black-card coupon: shop prices become cheaper and roll-shop powers get discounted.', space:'Orbital upgrade: Large Straight gets an even bigger rocket payoff, and near-space straight rolls still get help.', mouse:'Mansion mouse: real Full Houses become huge; two-pair misses still get a consolation bite but no heat.', slot:'Jackpot upgrade: triples pay score as well as money.', neon:'Neon overdrive: activates from lower totals and pays more.', royal:'Crown upgrade: Yahtzee gets even more absurd; four-of-kind in Yahtzee gets a consolation crown.', chaos:'Controlled chaos: random bonus is much bigger and never tiny.', magnet:'Mega magnet: any three-run adds points, and Small Straight becomes easier to rescue.', duck:'Golden duck: twos pay double score and more cash.', soup:'Gourmet soup: low totals up to 15 become useful.', bacon:'Crispy bacon: 4+2 combo hits harder, and either ingredient gives a snack bonus.', dentist:'Diamond dentist: every pair pays a lot more.', banana:'Steel banana: zero rescues become strong enough to matter.', coffee:'Triple espresso: fast banking pays much more.', goblin:'Greed king: totals near 13 also pay.', clown:'Circus upgrade: Four of a Kind becomes a monster and triples get a honk.', accountant:'Chief accountant: Chance scaling doubles and other categories get a small audit.', dragon:'Ancient dragon: wakes earlier, pays more score and cash.', sock:'Dry sock: odd-score fixer becomes real points.', cheese:'Aged cheese: fives pay double.', wizard:'Archwizard: mixed-face rolls get a stronger spell.', panic:'Panic nuke: weak scores get a much larger save.', troll:'Mountain troll: all-even/all-odd is huge, and four-of-a-kind parity still helps.', pizza:'Family pizza: totals near 25 count too.', raccoon:'Trash king: 1s become premium garbage.', forklift:'Heavy forklift: even one 6 helps; two 6s hit hard.', microwave:'Industrial microwave: even totals beep harder.', glue:'Super glue: held dice become high-value planning.', wog:'WOW: curse removed. Never steals points. Yahtzee gives +666, any roll with 1s gives +111 plus +22 per 1 and +$66, and all other rolls still give +66 and +$22.', moon:'Big moon: tiny-ish rolls up to 4 are now strong.', alien:'Alien council: four or five different faces pay hard.', grandma:'Grandma vault: in Pick mode, she opens wide -- upper-section banks get a massive +80 pre-heat bonus. In Forced mode the purse is smaller (+30), because timing her there is genuinely hard.', lawsuit:'Supreme court: every 1 pays serious damages.', viking:'Berserker audit: two or more odd dice can trigger.', jackpot:'Mega jackpot: any pair helps, exact one-pair explodes.', couch:'Recliner throne: final-roll banking is much better, but even earlier banks get comfort.', treasure:'Golden trophy: low scores get rescued before heat.', opera:'Opera finale: three-run progress can sing.', otter:'Senior otter: 3s pay real score and cash.', minty:'Mint factory: 4s pay real score and cash.', doskal:'Golden flush: scores divisible by 5 get cleaned up.', pretzel:'Mega pretzel: four or more different faces get a better knot.', polse:'Loaded pølse: totals around 18 count.', stink:'Toxic stink: two even dice can activate.', mousetrap:'Bear trap: first Three of a Kind pays score and more cash.', brainfreeze:'Deep freeze: holding four or more dice can arm value.', hedgehog:'Dragon hedgehog: cash hoards convert much harder.', sykkel:'Turbo sykkel: any three-run pays more; four-run pays a lot.', garlic:'Holy garlic: Yahtzee pays score and big money.', goose:'War goose: straights honk score and more cash.', roller:'Roller inferno: triples scale much harder.', mutant:'Stable mutant: upgrade chance becomes 50%, still choosing the die value your target needs most.', lifebuoy:'Rescue boat: weak banks are lifted higher.', sushi:'Omakase combo: two-pair/full-house pair structures pay more.', trolltunga:'Legendary peak: odd Yahtzees become absurdly huge; odd triples still matter.', lightning:'Thunder round: quick banks are explosive.', unicorn:'Rainbow unicorn: 2-3-4-5-6 becomes a true jackpot, and large straights still sparkle.', ufo:'Mothership: sixes and abduction pay more.', rerollbaron:'Executive rerolls: every turn starts with +2 extra rolls, and quick banks get a small focus bonus.', salvager:'Junkyard engine: selling a dice gives +2 rolls instead of +1, and salvage turns can add bonus score.', gambler:'High roller floor: heat floor becomes x3. Yahtzee still wipes your ENTIRE accumulated score to 0, but pays $100 cash consolation.', gamebreaker:'Cheat code upgrade: off-order forced-mode banks get a larger pre-heat bonus.', pointstealer:'Grand theft upgrade: a pair is enough to trigger the swap offer, and a successful steal takes +25 extra.', sixtyseven:'Lucky 67 upgrade: any real roll with a 6 has a 50% chance to mutate another die into a visible 7. Banking with a 7 adds +67 on top of the flat 67.', blackhole:'Event horizon: 30 is apocalyptic; 26+ is still excellent.', streak:'Momentum surge: the consistency reward doubles to +40 pre-heat.', rebound:'Second wind: the comeback bonus doubles to +50 before heat.', heattrader:'Cold trade upgrade: threshold rises to 25 pre-heat and the trade pays x14 flat instead of x10.'
 };
 function isUpgraded(player,id){ return !!(player && player.upgrades && player.upgrades[id]); }
 function displayItemName(player,item){
@@ -666,7 +673,7 @@ function smartUpgradePayload(id, ctx){
     case 'coffee': return state.rollsLeft >= 1 ? {score:40,note:'Triple Espresso upgrade'} : null;
     case 'goblin': return total >= 12 && total <= 14 ? {score:40,money:20,note:'Greed King upgrade'} : null;
     case 'clown': return values.some(v=>v>=4) ? {score:90,note:'Circus Clown upgrade'} : (tripleFace ? {score:30,note:'Clown triple honk upgrade'} : null);
-    case 'accountant': { const allDice = player.inv.length + (player.invertedInv||[]).length; return catId === 'chance' ? {score:allDice*10,note:'Chief Accountant upgrade'} : {score:allDice*3,note:'Small audit upgrade'}; }
+    case 'accountant': { const allDice = player.inv.length + (player.invertedInv||[]).length; return catId === 'chance' ? {score:allDice*7,note:'Chief Accountant upgrade: Chance bonus'} : {score:allDice*3,note:'Chief Accountant audit upgrade'}; }
     case 'dragon': return currentRawScore() >= 40 ? {score:70,money:60,note:'Ancient Dragon upgrade'} : null;
     case 'sock': return currentRawScore() > 0 ? {score: currentRawScore()%2===1 ? 25 : 12, note:'Dry Sock upgrade'} : null;
     case 'cheese': return (c[5]||0) ? {score:(c[5]||0)*10,money:(c[5]||0)*5,note:'Aged Cheese upgrade'} : null;
@@ -680,7 +687,7 @@ function smartUpgradePayload(id, ctx){
     case 'glue': return state.held.some(Boolean) ? {score:state.held.filter(Boolean).length*12,note:'Super Glue upgrade'} : null;
     case 'moon': return dice.every(n=>n<=4) ? {score:90,note:'Big Moon upgrade'} : null;
     case 'alien': return distinct >= 4 ? {score:100,note:'Alien Council upgrade'} : null;
-    case 'grandma': return cat.section === 'upper' ? {score:40,note:'Grandma Vault upgrade'} : null;
+    case 'grandma': { if (cat.section !== 'upper') return null; const isPick = state.targetMode === 'pick'; return isPick ? {score:80, note:'Grandma Vault: Pick-mode power!'} : {score:30, note:'Grandma Vault upgrade'}; }
     case 'lawsuit': return (c[1]||0) ? {score:(c[1]||0)*15,note:'Supreme Lawsuit upgrade'} : null;
     case 'viking': return oddCount >= 2 ? {score:42,note:'Berserker Viking upgrade'} : null;
     case 'jackpot': return Object.values(c).filter(n=>n===2).length === 1 && !Object.values(c).some(n=>n>2) ? {score:90,note:'Mega Jackpot upgrade'} : (pairs ? {score:35,note:'Pair Jackpot upgrade'} : null);
@@ -714,6 +721,9 @@ function smartUpgradePayload(id, ctx){
     case 'pointstealer': return pointStealerReady(player, dice) ? {score:25,note:'Grand theft pressure upgrade'} : null;
     case 'sixtyseven': return dice.includes(7) ? {score:67,note:'67 Dice seven bonus +67'} : null;
     case 'blackhole': return total === 30 ? {score:1000,money:400,note:'EVENT HORIZON upgrade +1000 +$400'} : (total >= 26 ? {score:180,note:'Deep Gravity upgrade'} : null);
+    case 'streak': return null;
+    case 'rebound': return null; // handled inline with isUpgraded check
+    case 'heattrader': return null;
     default: return null;
   }
 }
@@ -1841,9 +1851,10 @@ function effectScore(player, catId, {preview=false} = {}){
     addMoney('goblin', 33, '');
   }
   if (has(player,'clown') && catId === 'fourKind' && computeBaseScore(catId,dice) > 0) addScore('clown', 40, 'Clown Car +40');
-  if (has(player,'accountant') && catId === 'chance') {
-    const accountBonus = (player.inv.length + (player.invertedInv||[]).length) * 5;
-    addScore('accountant', accountBonus, accountBonus ? `Accountant +${accountBonus}` : '');
+  if (has(player,'accountant')) {
+    const allDice = player.inv.length + (player.invertedInv||[]).length;
+    const accountBonus = catId === 'chance' ? allDice * 7 : allDice * 2;
+    addScore('accountant', accountBonus, accountBonus ? `Accountant ${catId === 'chance' ? 'full audit' : 'audit'} +${accountBonus}` : '');
   }
   if (has(player,'sock') && currentRawScore() > 0 && currentRawScore() % 2 === 1) addScore('sock', 9, 'Wet Sock +9');
   if (has(player,'cheese')) {
@@ -1915,6 +1926,10 @@ function effectScore(player, catId, {preview=false} = {}){
   if (canApplyBankOnly(player,'alien') && new Set(dice).size === 5) addScore('alien', 140, 'Suspicious Alien +140');
   if (has(player,'forklift') && (c[6]||0) >= 2) addScore('forklift', 24, 'Forklift Certified +24');
   if (has(player,'grandma') && cat.section === 'upper') addScore('grandma', 20, 'Grandma’s Purse +20');
+  if (has(player,'rebound') && player.lastTurn && player.lastTurn.score === 0) {
+    const reboundBonus = isUpgraded(player,'rebound') ? 50 : 25;
+    addScore('rebound', reboundBonus, `Rebound comeback +${reboundBonus}`);
+  }
   if (has(player,'microwave') && total % 2 === 0) addScore('microwave', 16, 'Angry Microwave +16');
   if (has(player,'lawsuit') && c[1]) {
     const legalBonus = c[1] * 9;
@@ -1934,6 +1949,15 @@ function effectScore(player, catId, {preview=false} = {}){
       addScore('blackhole', 700, 'Black Hole 30: five 6s jackpot +700 +$250');
       addMoney('blackhole', 250, '');
     } else if (total >= 26) addScore('blackhole', 100, 'Black Hole Gravity +100');
+  }
+
+  // Streak Keeper: fires if pre-heat score beats or ties last turn
+  if (has(player,'streak')) {
+    const lastScore = player.lastTurn ? (player.lastTurn.score || 0) : 0;
+    if (currentRawScore() >= lastScore) {
+      const streakBonus = isUpgraded(player,'streak') ? 40 : 20;
+      addScore('streak', streakBonus, `Streak Keeper: ≥${lastScore} → +${streakBonus}`);
+    }
   }
 
   // Smart upgrades: every upgraded dice gains a stronger, theme-aware payoff before heat.
@@ -1959,6 +1983,20 @@ function effectScore(player, catId, {preview=false} = {}){
     markUsed('sixtyseven', '67 Dice ignores target heat');
   }
   let preMultiplierScore = categoryScore + diceScore;
+
+  // Heat Trader: if pre-heat score is low, sacrifice heat multiplier for flat score
+  if (has(player,'heattrader') && targetBoost.multiplier > 1) {
+    const threshold = isUpgraded(player,'heattrader') ? 25 : 15;
+    const payRate = isUpgraded(player,'heattrader') ? 14 : 10;
+    if (preMultiplierScore < threshold) {
+      const tradeBonus = targetBoost.multiplier * payRate;
+      diceScore += tradeBonus;
+      preMultiplierScore = categoryScore + diceScore;
+      markUsed('heattrader', `Heat Trader: sacrificed ${targetBoost.multiplier}x heat for +${tradeBonus} flat score`);
+      targetBoost = { multiplier: 1, reason: 'Heat Trader sacrificed heat for flat score' };
+    }
+  }
+
   if (has(player,'dragon') && (preMultiplierScore * targetBoost.multiplier) >= 60) {
     addScore('dragon', 30, 'Dragon Hoard +30 +$40');
     addMoney('dragon', 40, '');
@@ -2010,13 +2048,15 @@ function effectScore(player, catId, {preview=false} = {}){
     markUsed('sixtyseven', sevenBonus ? '67 Dice fixed bank: 67 + impossible-seven bonus 67 = 134' : '67 Dice fixed bank: score set to 67');
   }
 
+  let gamblerTotalWipe = false;
   if (has(player,'gambler') && isYahtzee(dice)) {
     score = 0;
+    gamblerTotalWipe = !preview;
     if (isUpgraded(player,'gambler')) addMoney('gambler', preview ? 0 : 100, 'High Roller bust consolation +$100');
-    markUsed('gambler', isUpgraded(player,'gambler') ? 'High Roller bust: Yahtzee score set to 0, +$100' : 'Gambler bust: Yahtzee score set to 0');
+    markUsed('gambler', isUpgraded(player,'gambler') ? 'High Roller TOTAL WIPE: Yahtzee erased all score, +$100' : 'Gambler TOTAL WIPE: Yahtzee erased all accumulated score');
   }
 
-  return { score, money, notes, dice, usedItems, targetMultiplier: targetBoost.multiplier, diceBonus: diceScore, categoryScore, preMultiplierScore, multipliedScore, wogPenaltyLost };
+  return { score, money, notes, dice, usedItems, targetMultiplier: targetBoost.multiplier, diceBonus: diceScore, categoryScore, preMultiplierScore, multipliedScore, wogPenaltyLost, gamblerTotalWipe };
 }
 
 function playerUpperTotal(player){
@@ -3021,6 +3061,18 @@ function showBadDiceCallout(amount){
   setTimeout(()=>box.remove(), 2100);
 }
 
+function showGamblerWipeCallout(isUpg){
+  document.querySelectorAll('.gamblerWipeCallout').forEach(el => el.remove());
+  const box = document.createElement('div');
+  box.className = 'gamblerWipeCallout';
+  box.innerHTML = `<div class="gamblerWipeEmoji">💀</div><div class="gamblerWipeKicker">🎲 Gambler’s Floor — Yahtzee!</div><div class="gamblerWipeBig">EVERYTHING WIPED</div><div class="gamblerWipeSub">Your Yahtzee erased every point you’ve earned this game.${isUpg ? '<br>💸 +$100 consolation cash.' : '<br>No coming back.'}</div>`;
+  document.body.appendChild(box);
+  vibrate([80,40,120,40,200]);
+  [110,165,82].forEach((f,i) => tone(f,.22,'sawtooth',.09,i*.06));
+  setTimeout(()=>{ box.style.transition='opacity .5s ease, transform .5s ease'; box.style.opacity='0'; box.style.transform='translate(-50%,-64%) scale(.93)'; }, 3500);
+  setTimeout(()=>box.remove(), 4100);
+}
+
 function showDiceRewardStep(itemId, index, total, multiplier = 1){
   const player = activePlayer();
   const item = shopItems.find(it => it.id === itemId) || { emoji: itemId === 'rollshop_cash' ? '💸' : '🎲', name: itemId === 'rollshop_cash' ? 'Cash-to-score' : (itemId || 'Bonus Dice') };
@@ -3394,6 +3446,16 @@ function scoreTarget(catId, button){
     result.notes.push('Extra Yahtzee +100 +$25');
   }
   player.scores[catId] = score;
+
+  // Gambler’s Floor total wipe: a Yahtzee nukes ALL accumulated score
+  if (result.gamblerTotalWipe) {
+    Object.keys(player.scores).forEach(key => { player.scores[key] = 0; });
+    player.yahtzeeBonus = 0;
+    player.scoreSwapAdjust = 0;
+    result.notes = result.notes.filter(n => !n.startsWith('Extra Yahtzee'));
+    result.notes.push('💀 Gambler total wipe: all scores erased');
+  }
+
   const baseCash = score > 0 ? Math.max(14, Math.floor(score*.75) + 8) : 0;
   const earned = baseCash + result.money;
   player.cash += earned;
@@ -3410,6 +3472,9 @@ function scoreTarget(catId, button){
   } else {
     tone(230, .07, 'triangle', .035);
     tone(310, .08, 'sine', .025, .045);
+  }
+  if (result.gamblerTotalWipe) {
+    setTimeout(()=>{ showGamblerWipeCallout(isUpgraded(player,'gambler')); }, 180);
   }
   if (result.wogPenaltyLost) {
     setTimeout(()=>{ sfx.bad(); showBadDiceCallout(result.wogPenaltyLost); vibrate([80,30,80]); }, 120);
