@@ -2465,6 +2465,7 @@ function leaderboardEntrySignature(entry){
 }
 
 function sortedLeaderboardScores(scores){
+  // Pass 1: dedupe by full signature (same game session / mode / player slot).
   const bySignature = new Map();
   prepareLeaderboardEntries(scores || []).forEach(entry => {
     const sig = leaderboardEntrySignature(entry);
@@ -2473,7 +2474,19 @@ function sortedLeaderboardScores(scores){
       bySignature.set(sig, entry);
     }
   });
-  return [...bySignature.values()]
+  // Pass 2: dedupe by name+score — same result from different sessions/metadata
+  // (e.g. the localAllTimeAsLeaderboardEntry stub has playerNames:[] while the
+  //  real saved entry has playerNames:['Alice'], giving different sigs but the
+  //  same logical score — keep oldest so the richer entry wins on tie-break).
+  const byNameScore = new Map();
+  [...bySignature.values()].forEach(entry => {
+    const key = `${cleanLeaderboardName(entry.name).toLowerCase()}|${Math.floor(Number(entry.score || 0))}`;
+    const existing = byNameScore.get(key);
+    if (!existing || String(entry.createdAt || '').localeCompare(String(existing.createdAt || '')) < 0) {
+      byNameScore.set(key, entry);
+    }
+  });
+  return [...byNameScore.values()]
     .sort((a,b)=>Number(b.score||0)-Number(a.score||0) || String(a.createdAt||'').localeCompare(String(b.createdAt||'')))
     .slice(0,10);
 }
