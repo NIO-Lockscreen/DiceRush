@@ -419,11 +419,13 @@ const categories = [
   { id:'fours', name:'Fours', desc:'Add all 4s.', section:'upper', face:4 },
   { id:'fives', name:'Fives', desc:'Add all 5s.', section:'upper', face:5 },
   { id:'sixes', name:'Sixes', desc:'Add all 6s.', section:'upper', face:6 },
+  { id:'onePair', name:'One Pair', desc:'2 same → score the pair.', section:'lower' },
+  { id:'twoPair', name:'Two Pairs', desc:'2 different pairs → score both pairs.', section:'lower' },
   { id:'threeKind', name:'Three of a kind', desc:'3 same → sum all dice.', section:'lower' },
   { id:'fourKind', name:'Four of a kind', desc:'4 same → matching four only.', section:'lower' },
   { id:'fullHouse', name:'Full House', desc:'3 + 2 → 25.', section:'lower' },
-  { id:'smallStraight', name:'Small Straight', desc:'4 in a row → 30.', section:'lower' },
-  { id:'largeStraight', name:'Large Straight', desc:'5 in a row → 40.', section:'lower' },
+  { id:'smallStraight', name:'Small Straight', desc:'1-2-3-4-5 → 30.', section:'lower' },
+  { id:'largeStraight', name:'Large Straight', desc:'2-3-4-5-6 → 40.', section:'lower' },
   { id:'yahtzee', name:'Yahtzee', desc:'5 same → 50.', section:'lower' },
   { id:'chance', name:'Chance', desc:'Score all dice.', section:'lower' }
 ];
@@ -1549,14 +1551,22 @@ function computeBaseScore(catId, dice = state.dice){
   const total = sumDice(dice);
   if (cat.section === 'upper') return dice.filter(n => n === cat.face).reduce((a,b)=>a+b,0);
   switch(catId){
+    case 'onePair': {
+      const pairs = Object.entries(c).filter(([,n])=>n>=2).map(([face])=>Number(face));
+      return pairs.length ? Math.max(...pairs) * 2 : 0;
+    }
+    case 'twoPair': {
+      const pairs = Object.entries(c).filter(([,n])=>n>=2).map(([face])=>Number(face)).sort((a,b)=>b-a);
+      return pairs.length >= 2 ? (pairs[0] + pairs[1]) * 2 : 0;
+    }
     case 'threeKind': return values.some(v=>v>=3) ? total : 0;
     case 'fourKind': {
       const bestFace = Math.max(0, ...Object.entries(c).filter(([,n])=>n>=4).map(([face])=>Number(face)));
       return bestFace ? bestFace * 4 : 0;
     }
     case 'fullHouse': return values.includes(3) && values.includes(2) ? 25 : 0;
-    case 'smallStraight': return hasStraight(4,dice) ? 30 : 0;
-    case 'largeStraight': return hasStraight(5,dice) ? 40 : 0;
+    case 'smallStraight': return hasExactlySequence([1,2,3,4,5],dice) ? 30 : 0;
+    case 'largeStraight': return hasExactlySequence([2,3,4,5,6],dice) ? 40 : 0;
     case 'yahtzee': return isYahtzee(dice) ? 50 : 0;
     case 'chance': return total;
     default: return 0;
@@ -1609,11 +1619,13 @@ function targetBonusMultiplier(catId, dice, categoryScore){
   if (categoryScore <= 0) return { multiplier: 1, reason: 'Target missed: bonus dice may score, but no heat.' };
 
   switch(catId){
+    case 'onePair': return { multiplier: 2, reason: 'One Pair hit' };
+    case 'twoPair': return { multiplier: 3, reason: 'Two Pairs hit' };
     case 'threeKind': return { multiplier: 3, reason: 'Three of a kind hit' };
     case 'fourKind': return { multiplier: 4, reason: 'Four of a kind hit' };
     case 'fullHouse': return { multiplier: 5, reason: 'Real Full House hit: 3 + 2 only' };
-    case 'smallStraight': return { multiplier: 4, reason: 'Small Straight hit' };
-    case 'largeStraight': return { multiplier: 5, reason: 'Large Straight hit' };
+    case 'smallStraight': return { multiplier: 4, reason: 'Small Straight (1-2-3-4-5) hit' };
+    case 'largeStraight': return { multiplier: 5, reason: 'Large Straight (2-3-4-5-6) hit' };
     case 'yahtzee': return { multiplier: 5, reason: 'Yahtzee hit' };
     default: return { multiplier: 2, reason: 'Target hit' };
   }
@@ -2090,6 +2102,31 @@ function matchingIndices(targetId){
     return dice.map((v,i)=>v===face?i:null).filter(v=>v!==null);
   }
   if (targetId === 'chance') return [0,1,2,3,4];
+  if (targetId === 'onePair') {
+    const pairs = Object.entries(c).filter(([,n])=>n>=2).map(([face])=>Number(face));
+    if (!pairs.length) return [];
+    const bestFace = Math.max(...pairs);
+    const used = new Set();
+    return [0,1].map(() => {
+      const idx = dice.findIndex((v,i)=>v===bestFace && !used.has(i));
+      if (idx !== -1) used.add(idx);
+      return idx;
+    }).filter(i=>i !== -1);
+  }
+  if (targetId === 'twoPair') {
+    const pairs = Object.entries(c).filter(([,n])=>n>=2).map(([face])=>Number(face)).sort((a,b)=>b-a);
+    if (!pairs.length) return [];
+    const topTwo = pairs.slice(0,2);
+    const used = new Set();
+    const indices = [];
+    topTwo.forEach(face => {
+      for (let k = 0; k < 2; k++) {
+        const idx = dice.findIndex((v,i)=>v===face && !used.has(i));
+        if (idx !== -1) { used.add(idx); indices.push(idx); }
+      }
+    });
+    return indices;
+  }
   if (targetId === 'yahtzee' || targetId === 'threeKind' || targetId === 'fourKind') {
     const face = Number(entries[0]?.[0] || 0);
     return dice.map((v,i)=>v===face?i:null).filter(v=>v!==null);
@@ -2099,16 +2136,12 @@ function matchingIndices(targetId){
     return dice.map((v,i)=>topTwo.includes(v)?i:null).filter(v=>v!==null);
   }
   if (targetId === 'smallStraight' || targetId === 'largeStraight') {
-    const neededRuns = targetId === 'smallStraight' ? [[1,2,3,4],[2,3,4,5],[3,4,5,6],[4,5,6,7]] : [[1,2,3,4,5],[2,3,4,5,6],[3,4,5,6,7]];
-    let bestRun = [];
-    for (const run of neededRuns) {
-      const unique = [...new Set(dice)];
-      const count = run.filter(n => unique.includes(n)).length;
-      if (count > bestRun.length) bestRun = run.filter(n => unique.includes(n));
-    }
+    const neededRun = targetId === 'smallStraight' ? [1,2,3,4,5] : [2,3,4,5,6];
+    const unique = [...new Set(dice)];
+    const present = neededRun.filter(n => unique.includes(n));
     const used = new Set();
     const indices = [];
-    bestRun.forEach(n => {
+    present.forEach(n => {
       const idx = dice.findIndex((v,i)=>v===n && !used.has(i));
       if (idx !== -1) { used.add(idx); indices.push(idx); }
     });
