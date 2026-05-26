@@ -286,7 +286,7 @@ h1{margin:0;font-size:clamp(30px,5vw,60px);line-height:.92;letter-spacing:-.06em
           <div class="stat"><div class="lab">Current player</div><div class="val" id="currentPlayer">P1</div></div>
           <div class="stat"><div class="lab">Score</div><div class="val" id="total">0</div></div>
           <div class="stat"><div class="lab">Cash</div><div class="val gold" id="cash">$0</div></div>
-          <div class="stat"><div class="lab">Round</div><div class="val" id="round">1/13</div></div>
+          <div class="stat"><div class="lab">Round</div><div class="val" id="round">1/15</div></div>
           <div class="stat"><div class="lab">Rolls</div><div class="val" id="rolls">3</div></div>
         </div>
 
@@ -660,7 +660,7 @@ function smartUpgradePayload(id, ctx){
     case 'printer': return currentRawScore() > 0 ? {score:25, note:'Laser Printer upgrade +25 before heat'} : null;
     case 'tax': return currentRawScore() === 0 ? {score:35, money:35, note:'Tax Refund upgrade rescued zero'} : null;
     case 'coupon': return {score:Math.ceil(total/2), note:'Black-card Coupon upgrade'};
-    case 'space': return hasExactlySequence([2,3,4,5,6],dice) ? {score:160, note:'Orbital Space upgrade'} : null;
+    case 'space': return (catId === 'largeStraight' && hasExactlySequence([2,3,4,5,6],dice)) ? {score:160, note:'Orbital Space upgrade'} : null;
     case 'mouse': return catId === 'fullHouse' ? (categoryScore > 0 ? {score:150,money:75,note:'Mansion Mouse upgrade'} : (pairs >= 2 ? {score:45,note:'Mouse two-pair consolation — no heat'} : null)) : null;
     case 'slot': return values.some(v=>v>=3) ? {score:45, note:'Jackpot Slot upgrade'} : null;
     case 'neon': return total >= 16 ? {score:35, note:'Neon Overdrive upgrade'} : null;
@@ -695,7 +695,7 @@ function smartUpgradePayload(id, ctx){
     case 'jackpot': return Object.values(c).filter(n=>n===2).length === 1 && !Object.values(c).some(n=>n>2) ? {score:90,note:'Mega Jackpot upgrade'} : (pairs ? {score:35,note:'Pair Jackpot upgrade'} : null);
     case 'couch': return {score: state.rollsLeft===0 ? 45 : 15, note:'Recliner Couch upgrade'};
     case 'treasure': return currentRawScore() < 20 ? {score:50,note:'Golden Trophy upgrade'} : null;
-    case 'opera': return hasAnyThreeConsecutive(dice) ? {score:45,note:'Opera Finale upgrade'} : null;
+    case 'opera': return (hasExactlySequence([1,2,3,4,5],dice) || hasExactlySequence([2,3,4,5,6],dice)) ? {score:45,note:'Opera Finale upgrade'} : null;
     case 'otter': return (c[3]||0) ? {score:(c[3]||0)*9,money:(c[3]||0)*3,note:'Senior Otter upgrade'} : null;
     case 'minty': return (c[4]||0) ? {score:(c[4]||0)*10,money:(c[4]||0)*3,note:'Mint Factory upgrade'} : null;
     case 'doskal': return currentRawScore() > 0 && currentRawScore()%5===0 ? {score:25,note:'Golden Flush upgrade'} : null;
@@ -707,14 +707,14 @@ function smartUpgradePayload(id, ctx){
     case 'hedgehog': return player.cash > 0 ? {score:Math.min(80, Math.floor(player.cash/4)), note:'Dragon Hedgehog upgrade'} : null;
     case 'sykkel': return hasStraight(4,dice) ? {score:55,note:'Turbo Sykkel four-run upgrade'} : (hasAnyThreeConsecutive(dice) ? {score:35,note:'Turbo Sykkel upgrade'} : null);
     case 'garlic': return isYahtzee(dice) ? {score:300,money:150,note:'Holy Garlic upgrade'} : null;
-    case 'goose': return hasStraight(4,dice) || hasStraight(5,dice) ? {score:35,money:60,note:'War Goose upgrade'} : null;
+    case 'goose': return (hasExactlySequence([1,2,3,4,5],dice) || hasExactlySequence([2,3,4,5,6],dice)) ? {score:35,money:60,note:'War Goose upgrade'} : null;
     case 'roller': return tripleFace ? {score:tripleFace*14,note:'Roller Inferno upgrade'} : null;
     case 'mutant': return null;
     case 'lifebuoy': return currentRawScore() < 40 ? {score:20,note:'Rescue Boat upgrade'} : null;
     case 'sushi': return pairs >= 2 ? {score:55,note:'Omakase Sushi upgrade'} : null;
     case 'trolltunga': return isYahtzee(dice) && dice[0]%2===1 ? {score:700,money:250,note:'Legendary Trolltunga upgrade'} : (tripleFace && tripleFace%2===1 ? {score:80,note:'Odd peak upgrade'} : null);
     case 'lightning': return state.rollsLeft === 2 ? {score:120,note:'Thunder Round upgrade'} : (state.rollsLeft >= 1 ? {score:45,note:'Lightning bank upgrade'} : null);
-    case 'unicorn': return hasExactlySequence([2,3,4,5,6],dice) ? {score:700,money:180,note:'Rainbow Unicorn upgrade'} : (hasStraight(5,dice) ? {score:100,note:'Unicorn sparkle upgrade'} : null);
+    case 'unicorn': return hasExactlySequence([2,3,4,5,6],dice) ? {score:700,money:180,note:'Rainbow Unicorn upgrade'} : (hasExactlySequence([1,2,3,4,5],dice) ? {score:100,note:'Unicorn sparkle upgrade'} : null);
     case 'ufo': return (c[6]||0) ? {score:75,note:'Mothership upgrade'} : null;
     case 'rerollbaron': return state.rollsLeft >= 1 ? {score:20,note:'Reroll Baron focus upgrade'} : null;
     case 'salvager': return has(player,'salvager') && state.hasRolled ? {score:15,note:'Salvage momentum upgrade'} : null;
@@ -1436,7 +1436,7 @@ function rollTriggerPayload(id, { player, dice }){
       if (hasExactlySequence([2,3,4,5,6], dice)) parts.push({ score:500, money:100, note:'Unicorn Sequence roll 2-3-4-5-6 +500 +$100' });
       if (upgraded) {
         if (hasExactlySequence([2,3,4,5,6], dice)) parts.push({ score:700, money:180, note:'Rainbow Unicorn roll 2-3-4-5-6 +700 +$180' });
-        else if (hasStraight(5,dice)) parts.push({ score:100, note:'Unicorn sparkle roll: large straight +100' });
+        else if (hasExactlySequence([1,2,3,4,5],dice)) parts.push({ score:100, note:'Unicorn sparkle roll: small straight +100' });
       }
       break;
     case 'garlic':
@@ -1455,8 +1455,8 @@ function rollTriggerPayload(id, { player, dice }){
       if (upgraded && tripleFace) parts.push({ score:tripleFace * 14, note:`Roller Inferno roll triple ${tripleFace}s +${tripleFace * 14}` });
       break;
     case 'goose':
-      if (hasStraight(4,dice) || hasStraight(5,dice)) parts.push({ money:25, note:'Honking Goose roll straight +$25' });
-      if (upgraded && (hasStraight(4,dice) || hasStraight(5,dice))) parts.push({ score:35, money:60, note:'War Goose roll straight +35 +$60' });
+      if (hasExactlySequence([1,2,3,4,5],dice) || hasExactlySequence([2,3,4,5,6],dice)) parts.push({ money:25, note:'Honking Goose roll straight +$25' });
+      if (upgraded && (hasExactlySequence([1,2,3,4,5],dice) || hasExactlySequence([2,3,4,5,6],dice))) parts.push({ score:35, money:60, note:'War Goose roll straight +35 +$60' });
       break;
     case 'sykkel':
       if (hasAnyThreeConsecutive(dice)) parts.push({ score:18, note:'Sykkel Sprint roll three-run +18' });
@@ -1828,8 +1828,7 @@ function effectScore(player, catId, {preview=false} = {}){
   if (has(player,'neon') && total >= 20) addScore('neon', 20, 'Neon +20');
   if (has(player,'magnet') && catId === 'smallStraight' && categoryScore === 0) {
     const unique = [...new Set(dice)];
-    const matching = [1,2,3,4,5].filter(n => unique.includes(n)).length;
-    if (matching >= 4) {
+    if ([[1,2,3,4],[2,3,4,5]].some(run => run.every(n => unique.includes(n)))) {
       categoryScore = 30;
       markUsed('magnet','Straight Magnet activated');
     }
