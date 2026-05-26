@@ -660,7 +660,7 @@ function smartUpgradePayload(id, ctx){
     case 'printer': return currentRawScore() > 0 ? {score:25, note:'Laser Printer upgrade +25 before heat'} : null;
     case 'tax': return currentRawScore() === 0 ? {score:35, money:35, note:'Tax Refund upgrade rescued zero'} : null;
     case 'coupon': return {score:Math.ceil(total/2), note:'Black-card Coupon upgrade'};
-    case 'space': return (catId === 'largeStraight' || hasStraight(5,dice)) ? {score:160, note:'Orbital Space upgrade'} : null;
+    case 'space': return hasExactlySequence([2,3,4,5,6],dice) ? {score:160, note:'Orbital Space upgrade'} : null;
     case 'mouse': return catId === 'fullHouse' ? (categoryScore > 0 ? {score:150,money:75,note:'Mansion Mouse upgrade'} : (pairs >= 2 ? {score:45,note:'Mouse two-pair consolation — no heat'} : null)) : null;
     case 'slot': return values.some(v=>v>=3) ? {score:45, note:'Jackpot Slot upgrade'} : null;
     case 'neon': return total >= 16 ? {score:35, note:'Neon Overdrive upgrade'} : null;
@@ -1827,8 +1827,9 @@ function effectScore(player, catId, {preview=false} = {}){
   }
   if (has(player,'neon') && total >= 20) addScore('neon', 20, 'Neon +20');
   if (has(player,'magnet') && catId === 'smallStraight' && categoryScore === 0) {
-    const unique = [...new Set(dice)].sort((a,b)=>a-b).join('');
-    if (['123','234','345','456'].some(run => unique.includes(run))) {
+    const unique = [...new Set(dice)];
+    const matching = [1,2,3,4,5].filter(n => unique.includes(n)).length;
+    if (matching >= 4) {
       categoryScore = 30;
       markUsed('magnet','Straight Magnet activated');
     }
@@ -1909,7 +1910,7 @@ function effectScore(player, catId, {preview=false} = {}){
     addScore('garlic', 250, 'Garlic Knight +250 +$100');
     addMoney('garlic', 100, '');
   }
-  if (canApplyBankOnly(player,'goose') && (hasStraight(4,dice) || hasStraight(5,dice))) addMoney('goose', 25, 'Honking Goose +$25');
+  if (canApplyBankOnly(player,'goose') && (hasExactlySequence([1,2,3,4,5],dice) || hasExactlySequence([2,3,4,5,6],dice))) addMoney('goose', 25, 'Honking Goose +$25');
   if (canApplyBankOnly(player,'roller')) {
     const tripleFace = Math.max(0, ...Object.entries(c).filter(([,n]) => n >= 3).map(([face]) => Number(face)));
     if (tripleFace) addScore('roller', tripleFace * 8, `Roller Disco +${tripleFace * 8}`);
@@ -1955,7 +1956,7 @@ function effectScore(player, catId, {preview=false} = {}){
   }
   if (has(player,'couch') && state.rollsLeft === 0) addScore('couch', 18, 'Last Roll Couch +18');
   if (has(player,'treasure') && currentRawScore() === 0) addScore('treasure', 40, 'Participation Trophy +40');
-  if (has(player,'opera') && hasStraight(4,dice)) addScore('opera', 35, 'Opera Straightener +35');
+  if (has(player,'opera') && (hasExactlySequence([1,2,3,4,5],dice) || hasExactlySequence([2,3,4,5,6],dice))) addScore('opera', 35, 'Opera Straightener +35');
   if (canApplyBankOnly(player,'blackhole')) {
     if (total === 30) {
       addScore('blackhole', 700, 'Black Hole 30: five 6s jackpot +700 +$250');
@@ -2115,7 +2116,7 @@ function matchingIndices(targetId){
   }
   if (targetId === 'twoPair') {
     const pairs = Object.entries(c).filter(([,n])=>n>=2).map(([face])=>Number(face)).sort((a,b)=>b-a);
-    if (!pairs.length) return [];
+    if (pairs.length < 2) return [];
     const topTwo = pairs.slice(0,2);
     const used = new Set();
     const indices = [];
@@ -2189,7 +2190,7 @@ function renderPlayers(){
     const chip = document.createElement('div');
     chip.className = 'playerChip' + (index===state.activePlayerIndex ? ' active' : '');
     const last = player.lastTurn ? ` • <span class="turnLast">Last: ${escapeHTML(player.lastTurn.name)} +${player.lastTurn.score}</span>` : '';
-    chip.innerHTML = `<div><strong>${escapeHTML(player.name)}</strong><small>${Object.keys(player.scores).length}/13 categories • $${player.cash}${last}</small></div><div class="pScore">${playerTotal(player)}</div>`;
+    chip.innerHTML = `<div><strong>${escapeHTML(player.name)}</strong><small>${Object.keys(player.scores).length}/${categories.length} categories • $${player.cash}${last}</small></div><div class="pScore">${playerTotal(player)}</div>`;
     chip.onclick = () => {
       if (state.playerCount === 1 || index === state.activePlayerIndex || state.hasRolled) return;
       state.activePlayerIndex = index;
@@ -2346,7 +2347,7 @@ function renderScoreCards(){
 function renderShop(){
   const player = activePlayer();
   els.shopCash.textContent = `$${player.cash}`;
-  if (els.poolMeta) els.poolMeta.textContent = `${shopItems.filter(isShopItemAvailable).length}/${shopItems.length} dice available for this mode • stronger dice are rarer • rare odds rise in round ${Math.min(playerRound(player),13)}/13`;
+  if (els.poolMeta) els.poolMeta.textContent = `${shopItems.filter(isShopItemAvailable).length}/${shopItems.length} dice available for this mode • stronger dice are rarer • rare odds rise in round ${Math.min(playerRound(player),categories.length)}/${categories.length}`;
   const invertedInvCount = (player.invertedInv || []).length;
   els.invCount.textContent = `${player.inv.length} / 6${invertedInvCount > 0 ? ` + ${invertedInvCount} ✦` : ''}`;
   els.inventory.innerHTML = '';
@@ -2968,7 +2969,7 @@ function renderStats(){
   els.currentPlayer.textContent = player.name;
   els.total.textContent = total;
   els.cash.textContent = `$${player.cash}`;
-  els.round.textContent = `${Math.min(playerRound(player),13)}/13`;
+  els.round.textContent = `${Math.min(playerRound(player),categories.length)}/${categories.length}`;
   els.rolls.textContent = state.rollsLeft;
   els.upperScore.textContent = upper;
   els.bonusScore.textContent = bonus + (player.yahtzeeBonus ? ` + ${player.yahtzeeBonus}` : '');
@@ -3279,9 +3280,12 @@ function evaluateRollMoment(){
   if (isYahtzee(dice)) {
     setMoment('💎','YAHTZEE energy!','All matching. The shop is drooling.');
     sfx.big(); burst(window.innerWidth/2,220,72); screenPop(); vibrate([25,40,55]);
-  } else if (hasStraight(5,dice)) {
+  } else if (hasExactlySequence([2,3,4,5,6],dice)) {
     setMoment('🚀','Large straight!','Clean, elegant, and glowing.');
     sfx.score(40); burst(window.innerWidth/2,230,36);
+  } else if (hasExactlySequence([1,2,3,4,5],dice)) {
+    setMoment('🎯','Small straight!','From one to five. Textbook Yatzy.');
+    sfx.score(30); burst(window.innerWidth/2,230,28);
   } else if (values.includes(4)) {
     setMoment('🔥','Four of a kind!','That target suddenly looks very realistic.');
     sfx.score(30); burst(window.innerWidth/2,230,28);
